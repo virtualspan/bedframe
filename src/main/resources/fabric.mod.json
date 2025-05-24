@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"id": "polymer-template-mod",
 	"version": "${version}",
-	"name": "polymer-template-mod",
+	"name": "Polymer Template Mod",
 	"description": "This is an example description! Tell everyone what your mod is about!",
 	"authors": [
 		"CHANGE ME"
