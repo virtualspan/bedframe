@@ -1,7 +1,7 @@
 package lol.sylvie.bedframe.api;
 
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
-import lol.sylvie.bedframe.api.compat.geyser.GeyserHandler;
+import lol.sylvie.bedframe.api.compat.geyser.GeyserHandlerOLD;
 import net.minecraft.item.Item;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
@@ -31,7 +31,7 @@ public class Bedframe {
             Class.forName("org.geysermc.api.Geyser");
             logger.info("Geyser detected! Registering Geyser hooks!");
 
-            GeyserHandler hooks = new GeyserHandler(this);
+            GeyserHandlerOLD hooks = new GeyserHandlerOLD(this);
             hooks.registerGeyserHooks();
         } catch (ClassNotFoundException e) {
             logger.info("Geyser is not loaded.");

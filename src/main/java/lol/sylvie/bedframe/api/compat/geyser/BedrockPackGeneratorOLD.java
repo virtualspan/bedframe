@@ -6,8 +6,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import lol.sylvie.bedframe.api.Bedframe;
 import lol.sylvie.bedframe.api.BedframeBlock;
-import lol.sylvie.bedframe.api.SimpleBedframeBlock;
-import lol.sylvie.bedframe.util.ResourceHelper;
 import lol.sylvie.bedframe.util.ZipHelper;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.Version;
@@ -23,7 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-public class BedrockPackGenerator {
+public class BedrockPackGeneratorOLD {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private static JsonArray getVersionArray(ModMetadata metadata) {

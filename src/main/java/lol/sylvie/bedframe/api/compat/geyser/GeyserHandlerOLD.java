@@ -20,14 +20,14 @@ import java.nio.file.Path;
 /**
  * Handles Geyser integration for a specific {@link lol.sylvie.bedframe.api.Bedframe} mod
  */
-public class GeyserHandler implements EventRegistrar {
+public class GeyserHandlerOLD implements EventRegistrar {
     // This class should be static, but I have to do it in this weird way to have an EventRegistrar
     // TODO: Figure out a way to not do that
     private final Bedframe bedframe;
 
     private boolean hasGeneratedResourcePacks = false;
 
-    public GeyserHandler(Bedframe bedframe) {
+    public GeyserHandlerOLD(Bedframe bedframe) {
         this.bedframe = bedframe;
     }
 
@@ -40,11 +40,11 @@ public class GeyserHandler implements EventRegistrar {
 
         EventBus<EventRegistrar> eventBus = GeyserApi.api().eventBus();
         eventBus.subscribe(this, GeyserDefineCustomItemsEvent.class, event -> {
-            BedrockItemTranslator.register(bedframe, event);
+            BedrockItemTranslatorOLD.register(bedframe, event);
         });
 
         eventBus.subscribe(this, GeyserDefineCustomBlocksEvent.class, event -> {
-            BedrockBlockTranslator.register(bedframe, event);
+            BedrockBlockTranslatorOLD.register(bedframe, event);
         });
 
         eventBus.subscribe(this, GeyserDefineResourcePacksEvent.class, event -> {
@@ -57,7 +57,7 @@ public class GeyserHandler implements EventRegistrar {
                 Path resourcePack = resourcePackDir.resolve(bedframe.getModId() + ".zip");
                 if (!hasGeneratedResourcePacks) {
                     Files.deleteIfExists(resourcePack);
-                    BedrockPackGenerator.generate(bedframe, resourcePack);
+                    BedrockPackGeneratorOLD.generate(bedframe, resourcePack);
                     hasGeneratedResourcePacks = true;
                 }
 

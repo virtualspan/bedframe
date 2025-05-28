@@ -1,7 +1,7 @@
 package lol.sylvie.testmod.block;
 
 import eu.pb4.polymer.core.api.item.PolymerBlockItem;
-import lol.sylvie.bedframe.api.SimpleBedframeBlock;
+import lol.sylvie.bedframe.api.impl.SimpleBedframeBlock;
 import lol.sylvie.testmod.Testmod;
 import lol.sylvie.testmod.block.impl.TexturedExampleBlock;
 import net.minecraft.block.AbstractBlock;

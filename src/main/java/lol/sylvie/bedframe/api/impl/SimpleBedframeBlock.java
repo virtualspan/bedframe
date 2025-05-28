@@ -1,8 +1,9 @@
-package lol.sylvie.bedframe.api;
+package lol.sylvie.bedframe.api.impl;
 
 import eu.pb4.polymer.blocks.api.BlockModelType;
 import eu.pb4.polymer.blocks.api.PolymerBlockModel;
 import eu.pb4.polymer.blocks.api.PolymerBlockResourceUtils;
+import lol.sylvie.bedframe.api.BedframeBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.Identifier;

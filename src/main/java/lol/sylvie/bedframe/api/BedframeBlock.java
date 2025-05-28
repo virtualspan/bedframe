@@ -2,6 +2,7 @@ package lol.sylvie.bedframe.api;
 
 import eu.pb4.polymer.blocks.api.BlockModelType;
 import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
+import lol.sylvie.bedframe.api.impl.SimpleBedframeBlock;
 import net.minecraft.block.Block;
 
 /**
