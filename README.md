@@ -1,22 +1,12 @@
-# Polymer Template Mod
+# Bedframe
 
-## Usage
+## Premise
 
-To make your own mod, make sure you:
-- Rename instances of `com.example` to your own package name
-- In `fabric.mod.json`
-- - Add your name in the `authors` section
-- - Change the `contact` info to match your mod
-- - Change the `id` and `name`, making sure to follow the conventions specified on the [Fabric Wiki](https://wiki.fabricmc.net/documentation:fabric_mod_json)
-- Change the `MOD_ID` field in the `PolymerTemplateMod` class to your mod id
+Library mod that handles textured/custom server-side Polymer blocks across both Geyser and Java clients.
 
-## Maintaining
+## Limits
 
-Update dependency versions in `gradle.properties` with their respective repository links
-
-## Setup
-
-For setup instructions please see the [fabric documentation page](https://docs.fabricmc.net/develop/getting-started/setting-up-a-development-environment) that relates to the IDE that you are using.
+- You *must* be using Geyser on the *server*. It won't work on the proxy.
 
 ## License
 

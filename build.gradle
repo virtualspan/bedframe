@@ -21,11 +21,37 @@ repositories {
 	maven {
 		url 'https://maven.nucleoid.xyz'
 	}
+
+	maven {
+		url = uri("https://repo.opencollab.dev/main/")
+	}
 }
 
-fabricApi {
-	configureDataGeneration {
-		client = true
+sourceSets {
+	testmod {
+		compileClasspath += main.compileClasspath
+		runtimeClasspath += main.runtimeClasspath
+		compileClasspath += main.output
+		runtimeClasspath += main.output
+	}
+}
+
+loom {
+	mods {
+		"bedframe" {
+			sourceSet sourceSets.main
+		}
+		"bedframe-testmod" {
+			sourceSet sourceSets.testmod
+		}
+	}
+	runs {
+		testmodServer {
+			server()
+			ideConfigGenerated = true
+			name = "Testmod Server"
+			source sourceSets.testmod
+		}
 	}
 }
 
@@ -40,12 +66,14 @@ dependencies {
 
 	// Polymer
 	modImplementation include("eu.pb4:polymer-core:${project.polymer_version}")
-
-	// SGUI, you probably want this for UI but it depends on your use case
-	// modImplementation include("eu.pb4:sgui:${project.sgui_version}")
+	modImplementation include("eu.pb4:polymer-blocks:${project.polymer_blocks_version}")
+	modImplementation include("eu.pb4:polymer-resource-pack:${project.polymer_resource_pack_version}")
 
 	// Server-Translations
 	modImplementation include("xyz.nucleoid:server-translations-api:${project.server_translations_version}")
+
+	// Geyser
+	compileOnly("org.geysermc.geyser:api:${project.geyser_version}")
 }
 
 processResources {

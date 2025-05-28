@@ -1,0 +1,1 @@
+- [ ] Add geometry for block types aside from `minecraft:geometry.full_block` and `minecraft:geometry.cross`
