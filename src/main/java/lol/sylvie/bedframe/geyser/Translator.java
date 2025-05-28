@@ -1,4 +1,4 @@
-package lol.sylvie.bedframe.api.geyser;
+package lol.sylvie.bedframe.geyser;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

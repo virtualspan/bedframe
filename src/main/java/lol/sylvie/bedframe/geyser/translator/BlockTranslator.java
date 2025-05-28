@@ -1,17 +1,15 @@
-package lol.sylvie.bedframe.api.geyser.translator;
+package lol.sylvie.bedframe.geyser.translator;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lol.sylvie.bedframe.BedframeInitializer;
 import lol.sylvie.bedframe.api.Bedframe;
 import lol.sylvie.bedframe.api.BedframeBlock;
-import lol.sylvie.bedframe.api.geyser.Translator;
+import lol.sylvie.bedframe.geyser.Translator;
 import lol.sylvie.bedframe.util.ResourceHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.piston.PistonBehavior;
 import net.minecraft.command.argument.BlockArgumentParser;
-import net.minecraft.registry.Registries;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.state.property.IntProperty;
@@ -24,6 +22,7 @@ import org.geysermc.geyser.api.block.custom.CustomBlockState;
 import org.geysermc.geyser.api.block.custom.NonVanillaCustomBlockData;
 import org.geysermc.geyser.api.block.custom.component.CustomBlockComponents;
 import org.geysermc.geyser.api.block.custom.component.GeometryComponent;
+import org.geysermc.geyser.api.block.custom.component.MaterialInstance;
 import org.geysermc.geyser.api.block.custom.component.TransformationComponent;
 import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
@@ -35,7 +34,6 @@ import java.io.FileWriter;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 
 import static lol.sylvie.bedframe.util.BedframeConstants.GSON;
 
@@ -124,7 +122,7 @@ public class BlockTranslator extends Translator {
 
             NonVanillaCustomBlockData data = builder.build();
             // Permutations
-            List<CustomBlockPermutation> permutations = new ArrayList<>();
+            //List<CustomBlockPermutation> permutations = new ArrayList<>();
             for (BlockState state : realBlock.getStateManager().getStates()) {
                 String stateKey = nonPrefixedBlockState(state, identifier);
                 CustomBlockComponents.Builder stateComponents = CustomBlockComponents.builder();
@@ -149,7 +147,17 @@ public class BlockTranslator extends Translator {
 
                 // Textures
                 List<Pair<String, String>> faceMap = parentFaceMap.getOrDefault(modelData.parent(), parentFaceMap.get("minecraft:block/cube_all"));
-                stateComponents.materialInstance()
+                for (Pair<String, String> face : faceMap) {
+                    String javaName = face.getLeft();
+                    String texturePath = modelData.textures.getOrDefault(javaName, "");
+
+                    String bedrockName = face.getRight();
+                    stateComponents.materialInstance(bedrockName, MaterialInstance.builder()
+                            .renderMethod(renderMethod)
+                            .texture(ResourceHelper.javaToBedrockTexture(texturePath))
+                            .build());
+                }
+
 
                 // Block state overrides
                 CustomBlockState.Builder stateBuilder = data.blockStateBuilder();

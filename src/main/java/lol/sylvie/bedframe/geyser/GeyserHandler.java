@@ -1,4 +1,4 @@
-package lol.sylvie.bedframe.api.geyser;
+package lol.sylvie.bedframe.geyser;
 
 import lol.sylvie.bedframe.api.Bedframe;
 
