@@ -1,5 +1,8 @@
 # Bedframe
 
+> [!CAUTION]
+> THIS IS VERY MUCH A WIP! DO NOT EXPECT ANYTHING CLOSE TO FUNCTIONAL UNTIL THIS WARNING IS NO LONGER PRESENT
+
 ## Premise
 
 Library mod that handles textured/custom server-side Polymer blocks across both Geyser and Java clients.
