@@ -28,14 +28,14 @@ import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomBlocksEvent;
 import xyz.nucleoid.packettweaker.PacketContext;
-import xyz.nucleoid.server.translations.api.language.TranslationAccess;
 
-import java.io.FileWriter;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.BiConsumer;
 
 import static lol.sylvie.bedframe.util.BedframeConstants.GSON;
+import static lol.sylvie.bedframe.util.BedframeConstants.LOGGER;
+import static lol.sylvie.bedframe.util.PathHelper.createDirectoryOrThrow;
 
 public class BlockTranslator extends Translator {
     // Maps parent models to a map containing the translations between Java sides and Bedrock sides
@@ -51,9 +51,25 @@ public class BlockTranslator extends Translator {
                     new Pair<>("side", "south"),
                     new Pair<>("side", "east"),
                     new Pair<>("side", "west")
+            ),
+            "minecraft:block/cube_column", List.of(
+                    new Pair<>("side", "*"),
+                    new Pair<>("end", "up"),
+                    new Pair<>("end", "down"),
+                    new Pair<>("side", "north"),
+                    new Pair<>("side", "south"),
+                    new Pair<>("side", "east"),
+                    new Pair<>("side", "west")
+            ),
+            "minecraft:block/cube_column_horizontal", List.of(
+                    new Pair<>("side", "*"),
+                    new Pair<>("end", "up"),
+                    new Pair<>("end", "down"),
+                    new Pair<>("side", "north"),
+                    new Pair<>("side", "south"),
+                    new Pair<>("side", "east"),
+                    new Pair<>("side", "west")
             )
-            // TODO: other block types
-
     );
 
     public BlockTranslator(Bedframe bedframe) {
@@ -74,32 +90,46 @@ public class BlockTranslator extends Translator {
                 case BooleanProperty booleanProperty ->
                         builder.booleanProperty(property.getName());
                 case EnumProperty<?> enumProperty ->
-                        builder.stringProperty(enumProperty.getName(), enumProperty.getValues().stream().map(Enum::name).toList());
+                        builder.stringProperty(enumProperty.getName(), enumProperty.getValues().stream().map(Enum::name).map(String::toLowerCase).toList());
                 default ->
-                        BedframeInitializer.LOGGER.error("Unknown property type: {}", property.getClass().getName());
+                        LOGGER.error("Unknown property type: {}", property.getClass().getName());
             }
         }
     }
 
     private String nonPrefixedBlockState(BlockState state, Identifier identifier) {
-        String stateString = state.toString();
+        if (state.getProperties().isEmpty()) return "";
+        String stateString = BlockArgumentParser.stringifyBlockState(state);
         return stateString.substring(identifier.toString().length() + 1, stateString.length() - 1);
     }
 
     // Referenced https://github.com/GeyserMC/Hydraulic/blob/master/shared/src/main/java/org/geysermc/hydraulic/block/BlockPackModule.java#L54
-    public void handle(GeyserDefineCustomBlocksEvent event, Path packRoot, TranslationAccess translations, FileWriter writer) {
+    public void handle(GeyserDefineCustomBlocksEvent event, Path packRoot) {
+        Path textureDir = createDirectoryOrThrow(packRoot.resolve("textures"));
+        createDirectoryOrThrow(textureDir.resolve("blocks"));
+
+        JsonObject terrainTextureObject = new JsonObject();
+        terrainTextureObject.addProperty("resource_pack_name", bedframe.getModId());
+        terrainTextureObject.addProperty("texture_name", "atlas.terrain");
+
+        JsonObject textureDataObject = new JsonObject();
+
         forEachBlock((identifier, block) -> {
             Block realBlock = block.getBlock();
+            // Block names
+            forEachLanguage(packRoot, (writer, translationAccess) -> {
+                writeOrThrow(writer, "tile." + identifier.toString() + ".name=" + translationAccess.get(realBlock.getTranslationKey()));
+            });
+
             NonVanillaCustomBlockData.Builder builder = NonVanillaCustomBlockData.builder()
                     .name(identifier.getPath())
                     .namespace(identifier.getNamespace())
                     .includedInCreativeInventory(true);
-            CustomBlockComponents.Builder components = CustomBlockComponents.builder();
 
             // Properties
             populateProperties(builder, realBlock.getStateManager().getProperties());
 
-            // Models
+            // Parsing models
             HashMap<String, Pair<Integer, Integer>> rotationData = new HashMap<>();
             HashMap<String, ModelData> models = new HashMap<>();
             JsonObject variants = ResourceHelper.readJsonResource(identifier.getNamespace(), "blockstates/" + identifier.getPath() + ".json", GSON)
@@ -114,77 +144,116 @@ public class BlockTranslator extends Translator {
                 int y = potentialY == null ? 0 : potentialY.getAsInt();
 
                 String modelPath = object.get("model").getAsString();
-                JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), modelPath + ".json", GSON);
+                JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + Identifier.of(modelPath).getPath() + ".json", GSON);
 
                 rotationData.put(key, new Pair<>(x, y));
                 models.put(key, ModelData.fromJson(model));
             });
 
-            NonVanillaCustomBlockData data = builder.build();
-            // Permutations
-            //List<CustomBlockPermutation> permutations = new ArrayList<>();
+            // Block states/permutations
+            List<CustomBlockPermutation> permutations = new ArrayList<>();
             for (BlockState state : realBlock.getStateManager().getStates()) {
                 String stateKey = nonPrefixedBlockState(state, identifier);
-                CustomBlockComponents.Builder stateComponents = CustomBlockComponents.builder();
+                CustomBlockComponents.Builder stateComponentBuilder = CustomBlockComponents.builder();
 
-                // Rotated variants
+                // Rotation
                 Pair<Integer, Integer> rotation = rotationData.getOrDefault(stateKey, new Pair<>(0, 0));
                 TransformationComponent rotationComponent = new TransformationComponent((360 - rotation.getLeft()) % 360, (360 - rotation.getRight()) % 360, 0);
-                stateComponents.transformation(rotationComponent);
+                stateComponentBuilder.transformation(rotationComponent);
 
                 // Geometry
+                // TODO: More geometry types
                 ModelData modelData = models.get(stateKey);
-                GeometryComponent geometryComponent = GeometryComponent.builder().identifier("minecraft:geometry.full_block").build();
-                String renderMethod = "opaque";
-                switch (modelData.parent()) {
-                    case "minecraft:block/cross": {
-                        geometryComponent = GeometryComponent.builder().identifier("minecraft:geometry.cross").build();
-                        renderMethod = "alpha_test_single_sided";
-                        break;
-                    }
-                }
-                stateComponents.geometry(geometryComponent);
+                boolean cross = modelData.parent().equals("minecraft:block/cross");
+                String geometryIdentifier = cross ?  "minecraft:geometry.cross" : "minecraft:geometry.full_block";
+                String renderMethod = cross ? "alpha_test_single_sided" : "opaque";
+
+                GeometryComponent geometryComponent = GeometryComponent.builder().identifier(geometryIdentifier).build();
+                stateComponentBuilder.geometry(geometryComponent);
 
                 // Textures
                 List<Pair<String, String>> faceMap = parentFaceMap.getOrDefault(modelData.parent(), parentFaceMap.get("minecraft:block/cube_all"));
                 for (Pair<String, String> face : faceMap) {
-                    String javaName = face.getLeft();
-                    String texturePath = modelData.textures.getOrDefault(javaName, "");
+                    String javaFaceName = face.getLeft();
+                    String bedrockFaceName = face.getRight();
+                    String texturePath = "textures/" + modelData.textures.getOrDefault(javaFaceName, "block/" + identifier.getPath());
+                    String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
 
-                    String bedrockName = face.getRight();
-                    stateComponents.materialInstance(bedrockName, MaterialInstance.builder()
+                    String bedrockTextureName = identifier.toString(); // Java face name since bedrock uses an * for all
+                    if (!javaFaceName.equals("all"))
+                        bedrockTextureName += "_" + javaFaceName;
+
+                    JsonObject thisTexture = new JsonObject();
+                    thisTexture.addProperty("textures", bedrockPath);
+                    textureDataObject.add(bedrockTextureName, thisTexture);
+
+                    stateComponentBuilder.materialInstance(bedrockFaceName, MaterialInstance.builder()
                             .renderMethod(renderMethod)
-                            .texture(ResourceHelper.javaToBedrockTexture(texturePath))
+                            .texture(bedrockTextureName)
+                            .faceDimming(true)
+                            .ambientOcclusion(true)
                             .build());
+
+                    ResourceHelper.copyResource(identifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
                 }
 
+                CustomBlockComponents stateComponents = stateComponentBuilder.build();
+                if (state.getProperties().isEmpty()) {
+                    builder.components(stateComponents);
+                    continue;
+                }
 
-                // Block state overrides
-                CustomBlockState.Builder stateBuilder = data.blockStateBuilder();
+                // Conditions
+                // Essentially telling Bedrock what components to activate when
+                List<String> conditions = new ArrayList<>();
                 for (Property<?> property : state.getProperties()) {
-                    if (property instanceof IntProperty intProperty) {
-                        stateBuilder.intProperty(property.getName(), state.get(intProperty));
-                    } else if (property instanceof BooleanProperty booleanProperty) {
-                        stateBuilder.booleanProperty(property.getName(), state.get(booleanProperty));
-                    } else if (property instanceof EnumProperty<?> enumProperty) {
-                        stateBuilder.stringProperty(enumProperty.getName(), state.get(enumProperty).name());
-                    } else {
-                        throw new IllegalArgumentException("Unknown property type: " + property.getClass().getName());
+                    String propertyValue = state.get(property).toString();
+                    if (property instanceof EnumProperty<?>) {
+                        propertyValue = "'" + propertyValue.toLowerCase() + "'";
+                    }
+                    conditions.add("query.block_property('%name%') == %value%"
+                            .replace("%name%", property.getName())
+                            .replace("%value%", propertyValue));
+                }
+                String stateCondition = String.join(" && ", conditions);
+                permutations.add(new CustomBlockPermutation(stateComponents, stateCondition));
+            }
+            builder.permutations(permutations);
+
+            NonVanillaCustomBlockData data = builder.build();
+            event.register(data);
+
+            // Registering the block states
+            for (BlockState state : realBlock.getStateManager().getStates()) {
+                CustomBlockState.Builder stateBuilder = data.blockStateBuilder();
+
+                for (Property<?> property : state.getProperties()) {
+                    switch (property) {
+                        case IntProperty intProperty ->
+                                stateBuilder.intProperty(property.getName(), state.get(intProperty));
+                        case BooleanProperty booleanProperty ->
+                                stateBuilder.booleanProperty(property.getName(), state.get(booleanProperty));
+                        case EnumProperty<?> enumProperty ->
+                                stateBuilder.stringProperty(enumProperty.getName(), state.get(enumProperty).toString().toLowerCase());
+                        default ->
+                                throw new IllegalArgumentException("Unknown property type: " + property.getClass().getName());
                     }
                 }
 
                 CustomBlockState customBlockState = stateBuilder.build();
                 event.registerOverride(BlockArgumentParser.stringifyBlockState(block.getPolymerBlockState(state, PacketContext.get())), customBlockState);
             }
-
-
         });
+
+        terrainTextureObject.add("texture_data", textureDataObject);
+        writeJsonToFile(terrainTextureObject, textureDir.resolve("terrain_texture.json").toFile());
+        markResourcesProvided();
     }
 
     @Override
-    public void register(EventBus<EventRegistrar> eventBus, Path packRoot, TranslationAccess translations, FileWriter writer) {
+    public void register(EventBus<EventRegistrar> eventBus, Path packRoot) {
         eventBus.subscribe(this, GeyserDefineCustomBlocksEvent.class, event -> {
-            handle(event, packRoot, translations, writer);
+            handle(event, packRoot);
         });
     }
 
@@ -192,7 +261,11 @@ public class BlockTranslator extends Translator {
         public static ModelData fromJson(JsonObject object) {
             JsonObject texturesObject = object.getAsJsonObject("textures");
             HashMap<String, String> texturesMap = new HashMap<>();
-            texturesObject.entrySet().forEach(e -> texturesMap.put(e.getKey(), e.getValue().getAsString()));
+            texturesObject.entrySet().forEach(e -> {
+                String texture = e.getValue().getAsString();
+                if (texture.contains(":")) texture = Identifier.of(texture).getPath();
+                texturesMap.put(e.getKey(), texture);
+            });
             return new ModelData(object.get("parent").getAsString(), texturesMap);
         }
     }

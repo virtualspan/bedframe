@@ -48,6 +48,7 @@ public class ModItems {
 
             // Or blocks:
             itemGroup.add(ModBlocks.EXAMPLE_BLOCK.asItem());
+            itemGroup.add(ModBlocks.EXAMPLE_LOG.asItem());
         });
 
         Testmod.BEDFRAME.register(EXAMPLE_ITEM);

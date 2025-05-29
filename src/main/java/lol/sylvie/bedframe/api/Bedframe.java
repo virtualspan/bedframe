@@ -1,7 +1,8 @@
 package lol.sylvie.bedframe.api;
 
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
-import lol.sylvie.bedframe.api.compat.geyser.GeyserHandlerOLD;
+import lol.sylvie.bedframe.geyser.GeyserHandler;
+import lol.sylvie.bedframe.util.BedframeConstants;
 import net.minecraft.item.Item;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
@@ -27,14 +28,9 @@ public class Bedframe {
 
         if (!PolymerResourcePackUtils.addModAssets(modId)) throw new IllegalStateException("Mod ID " + modId + " is invalid!");
 
-        try {
-            Class.forName("org.geysermc.api.Geyser");
-            logger.info("Geyser detected! Registering Geyser hooks!");
-
-            GeyserHandlerOLD hooks = new GeyserHandlerOLD(this);
-            hooks.registerGeyserHooks();
-        } catch (ClassNotFoundException e) {
-            logger.info("Geyser is not loaded.");
+        if (BedframeConstants.isGeyserLoaded) {
+            GeyserHandler hooks = new GeyserHandler(this);
+            hooks.registerHooks();
         }
     }
 
@@ -56,5 +52,9 @@ public class Bedframe {
 
     public ArrayList<Item> getItems() {
         return items;
+    }
+
+    public Logger getLogger() {
+        return logger;
     }
 }

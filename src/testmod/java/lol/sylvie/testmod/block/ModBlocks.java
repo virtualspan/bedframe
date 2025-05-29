@@ -1,9 +1,11 @@
 package lol.sylvie.testmod.block;
 
 import eu.pb4.polymer.core.api.item.PolymerBlockItem;
+import lol.sylvie.bedframe.api.BedframeBlock;
 import lol.sylvie.bedframe.api.impl.SimpleBedframeBlock;
 import lol.sylvie.testmod.Testmod;
 import lol.sylvie.testmod.block.impl.TexturedExampleBlock;
+import lol.sylvie.testmod.block.impl.TexturedLogExampleBlock;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.item.BlockItem;
@@ -26,11 +28,19 @@ public class ModBlocks {
             Items.GRASS_BLOCK
     );
 
+    public static final Block EXAMPLE_LOG = register(
+            "example_log",
+            TexturedLogExampleBlock::new,
+            AbstractBlock.Settings.create().sounds(BlockSoundGroup.WOOD),
+            Items.OAK_LOG
+    );
+
+
     private static Block register(String name, Function<AbstractBlock.Settings, Block> blockFactory, AbstractBlock.Settings settings, Item polymerItem) {
         RegistryKey<Block> blockKey = keyOfBlock(name);
         Block block = blockFactory.apply(settings.registryKey(blockKey));
 
-        if (block instanceof SimpleBedframeBlock bedframeBlock)
+        if (block instanceof BedframeBlock bedframeBlock)
             Testmod.BEDFRAME.register(bedframeBlock, blockKey.getValue());
 
         if (polymerItem != null) {

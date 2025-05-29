@@ -3,6 +3,7 @@ package lol.sylvie.bedframe.util;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -13,9 +14,11 @@ public class ResourceHelper {
     public static InputStream getResource(String namespace, String path) {
         return Thread.currentThread().getContextClassLoader().getResourceAsStream("assets/" + namespace + "/" + path);
     }
+
     public static void copyResource(String namespace, String path, Path destination) {
         try {
-            Files.copy(getResource(namespace, path), destination);
+            if (Files.notExists(destination))
+                Files.copy(getResource(namespace, path), destination);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

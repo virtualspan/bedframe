@@ -6,6 +6,6 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomItemsEvent;
 
 public class BedrockItemTranslatorOLD {
     public static void register(Bedframe bedframe, GeyserDefineCustomItemsEvent event) {
-        BedframeInitializer.LOGGER.warn("Item declaration is not implemented");
+        //BedframeInitializer.LOGGER.warn("Item declaration is not implemented");
     }
 }

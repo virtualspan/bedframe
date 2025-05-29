@@ -1,7 +1,7 @@
 {
   "variants": {
     "": {
-      "model": "bedframe-testmod:models/example_block"
+      "model": "bedframe-testmod:block/example_block"
     }
   }
 }
