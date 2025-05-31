@@ -14,15 +14,19 @@ public class ResourceHelper {
         return Thread.currentThread().getContextClassLoader().getResourceAsStream(path);
     }
 
+    public static String getResourcePath(String namespace, String path) {
+        return "assets/" + namespace + "/" + path;
+    }
+
     public static InputStream getResource(String namespace, String path) {
-        return getResource("assets/" + namespace + "/" + path);
+        return getResource(getResourcePath(namespace, path));
     }
 
     public static void copyResource(String namespace, String path, Path destination) {
         try {
             if (Files.notExists(destination))
                 Files.copy(getResource(namespace, path), destination);
-        } catch (IOException e) {
+        } catch (IOException | NullPointerException e) {
             throw new RuntimeException("Couldn't copy resource " + Identifier.of(namespace, path), e);
         }
     }

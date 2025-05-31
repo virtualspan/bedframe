@@ -43,13 +43,13 @@ import static lol.sylvie.bedframe.util.PathHelper.createDirectoryOrThrow;
 public class BlockTranslator extends Translator {
     // Maps parent models to a map containing the translations between Java sides and Bedrock sides
     private static final Map<String, List<Pair<String, String>>> parentFaceMap = Map.of(
-            "minecraft:block/cube_all", List.of(
+            "block/cube_all", List.of(
                     new Pair<>("all", "*")
             ),
-            "minecraft:block/cross", List.of(
+            "block/cross", List.of(
                     new Pair<>("cross", "*")
             ),
-            "minecraft:block/cube_bottom_top", List.of(
+            "block/cube_bottom_top", List.of(
                     new Pair<>("side", "*"),
                     new Pair<>("top", "up"),
                     new Pair<>("bottom", "down"),
@@ -58,7 +58,7 @@ public class BlockTranslator extends Translator {
                     new Pair<>("side", "east"),
                     new Pair<>("side", "west")
             ),
-            "minecraft:block/cube_column", List.of(
+            "block/cube_column", List.of(
                     new Pair<>("side", "*"),
                     new Pair<>("end", "up"),
                     new Pair<>("end", "down"),
@@ -67,7 +67,7 @@ public class BlockTranslator extends Translator {
                     new Pair<>("side", "east"),
                     new Pair<>("side", "west")
             ),
-            "minecraft:block/cube_column_horizontal", List.of(
+            "block/cube_column_horizontal", List.of(
                     new Pair<>("side", "*"),
                     new Pair<>("end", "up"),
                     new Pair<>("end", "down"),
@@ -75,6 +75,12 @@ public class BlockTranslator extends Translator {
                     new Pair<>("side", "south"),
                     new Pair<>("side", "east"),
                     new Pair<>("side", "west")
+            ),
+            "block/orientable", List.of(
+                    new Pair<>("side", "*"),
+                    new Pair<>("front", "north"),
+                    new Pair<>("top", "up"),
+                    new Pair<>("bottom", "down")
             )
     );
 
@@ -93,7 +99,11 @@ public class BlockTranslator extends Translator {
 
     private void forEachBlock(BiConsumer<Identifier, PolymerTexturedBlock> function) {
         for (Map.Entry<Identifier, PolymerTexturedBlock> entry : blocks.entrySet()) {
-            function.accept(entry.getKey(), entry.getValue());
+            try {
+                function.accept(entry.getKey(), entry.getValue());
+            } catch (RuntimeException e) {
+                LOGGER.error("Couldn't load block {}", entry.getKey(), e);
+            }
         }
     }
 
@@ -163,23 +173,32 @@ public class BlockTranslator extends Translator {
             // Parsing models
             HashMap<String, Pair<Integer, Integer>> rotationData = new HashMap<>();
             HashMap<String, ModelData> models = new HashMap<>();
-            JsonObject variants = ResourceHelper.readJsonResource(identifier.getNamespace(), "blockstates/" + identifier.getPath() + ".json")
-                    .getAsJsonObject("variants");
-            forEachKey(variants, (key, element) -> {
-                JsonObject object = element.getAsJsonObject();
 
-                JsonElement potentialX = object.get("x");
-                int x = potentialX == null ? 0 : potentialX.getAsInt();
+            String blockstatesPath = "blockstates/" + identifier.getPath() + ".json";
+            try {
+                JsonObject variants = ResourceHelper.readJsonResource(identifier.getNamespace(), blockstatesPath)
+                        .getAsJsonObject("variants");
+                forEachKey(variants, (key, element) -> {
+                    JsonObject object = element.getAsJsonObject();
 
-                JsonElement potentialY = object.get("y");
-                int y = potentialY == null ? 0 : potentialY.getAsInt();
+                    JsonElement potentialX = object.get("x");
+                    int x = potentialX == null ? 0 : potentialX.getAsInt();
 
-                String modelPath = object.get("model").getAsString();
-                JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + Identifier.of(modelPath).getPath() + ".json");
+                    JsonElement potentialY = object.get("y");
+                    int y = potentialY == null ? 0 : potentialY.getAsInt();
 
-                rotationData.put(key, new Pair<>(x, y));
-                models.put(key, ModelData.fromJson(model));
-            });
+                    String modelPath = object.get("model").getAsString();
+                    JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + Identifier.of(modelPath).getPath() + ".json");
+
+                    rotationData.put(key, new Pair<>(x, y));
+                    models.put(key, ModelData.fromJson(model));
+                });
+            } catch (NullPointerException e) {
+                // SHAME!
+                LOGGER.warn("Missing blockstates for {}", identifier);
+                JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/block/" + identifier.getPath() + ".json");
+                models.put("", ModelData.fromJson(model));
+            }
 
             // Block states/permutations
             List<CustomBlockPermutation> permutations = new ArrayList<>();
@@ -194,7 +213,11 @@ public class BlockTranslator extends Translator {
 
                 // Geometry
                 // TODO: More geometry types
-                ModelData modelData = models.get(stateKey);
+                ModelData modelData = models.getOrDefault(stateKey, models.get(""));
+                if (modelData == null) {
+                    LOGGER.warn("Couldn't load model for blockstate {}", state);
+                    continue;
+                }
                 boolean cross = modelData.parent().equals("minecraft:block/cross");
                 String geometryIdentifier = cross ?  "minecraft:geometry.cross" : "minecraft:geometry.full_block";
                 String renderMethod = cross ? "alpha_test_single_sided" : "opaque";
@@ -203,16 +226,14 @@ public class BlockTranslator extends Translator {
                 stateComponentBuilder.geometry(geometryComponent);
 
                 // Textures
-                List<Pair<String, String>> faceMap = parentFaceMap.getOrDefault(modelData.parent(), parentFaceMap.get("minecraft:block/cube_all"));
+                List<Pair<String, String>> faceMap = parentFaceMap.getOrDefault(modelData.parent().replaceFirst("minecraft:", ""), parentFaceMap.get("block/cube_all"));
                 for (Pair<String, String> face : faceMap) {
                     String javaFaceName = face.getLeft();
                     String bedrockFaceName = face.getRight();
-                    String texturePath = "textures/" + modelData.textures.getOrDefault(javaFaceName, "block/" + identifier.getPath());
+                    if (!modelData.textures.containsKey(javaFaceName)) continue;
+                    String bedrockTextureName = modelData.textures.get(javaFaceName);
+                    String texturePath = "textures/" + bedrockTextureName;
                     String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
-
-                    String bedrockTextureName = identifier.toString(); // Java face name since bedrock uses an * for all
-                    if (!javaFaceName.equals("all"))
-                        bedrockTextureName += "_" + javaFaceName;
 
                     JsonObject thisTexture = new JsonObject();
                     thisTexture.addProperty("textures", bedrockPath);
@@ -244,10 +265,14 @@ public class BlockTranslator extends Translator {
                     if (property instanceof EnumProperty<?>) {
                         propertyValue = "'" + propertyValue.toLowerCase() + "'";
                     }
-                    conditions.add("query.block_property('%name%') == %value%"
+
+                    String condition = "q.block_property('%name%') == %value%"
                             .replace("%name%", property.getName())
-                            .replace("%value%", propertyValue));
+                            .replace("%value%", propertyValue);
+
+                    conditions.add(condition);
                 }
+
                 String stateCondition = String.join(" && ", conditions);
                 permutations.add(new CustomBlockPermutation(stateComponents, stateCondition));
             }
