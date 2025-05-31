@@ -19,18 +19,21 @@ import net.minecraft.state.property.IntProperty;
 import net.minecraft.state.property.Property;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.EmptyBlockView;
 import org.geysermc.geyser.api.block.custom.CustomBlockData;
 import org.geysermc.geyser.api.block.custom.CustomBlockPermutation;
 import org.geysermc.geyser.api.block.custom.CustomBlockState;
 import org.geysermc.geyser.api.block.custom.NonVanillaCustomBlockData;
-import org.geysermc.geyser.api.block.custom.component.CustomBlockComponents;
-import org.geysermc.geyser.api.block.custom.component.GeometryComponent;
-import org.geysermc.geyser.api.block.custom.component.MaterialInstance;
-import org.geysermc.geyser.api.block.custom.component.TransformationComponent;
+import org.geysermc.geyser.api.block.custom.component.*;
 import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomBlocksEvent;
 import org.geysermc.geyser.api.util.CreativeCategory;
+import org.joml.Vector3f;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.nio.file.Path;
@@ -108,6 +111,23 @@ public class BlockTranslator extends Translator {
         if (state.getProperties().isEmpty()) return "";
         String stateString = BlockArgumentParser.stringifyBlockState(state);
         return stateString.substring(identifier.toString().length() + 1, stateString.length() - 1);
+    }
+
+    private BoxComponent voxelShapeToBoxComponent(VoxelShape shape) {
+        if (shape.isEmpty()) {
+            return BoxComponent.emptyBox();
+        }
+
+        Box box = shape.getBoundingBox();
+
+        float sizeX = (float) box.getLengthX() * 16;
+        float sizeY = (float) box.getLengthY() * 16;
+        float sizeZ = (float) box.getLengthZ() * 16;
+
+        Vec3d origin = box.getMinPos();
+        Vector3f originNormalized = new Vec3d(origin.getX(), origin.getY(), origin.getZ()).toVector3f();
+
+        return new BoxComponent(originNormalized.x() - 8, originNormalized.y(), originNormalized.z() - 8, sizeX, sizeY, sizeZ);
     }
 
     // Referenced https://github.com/GeyserMC/Hydraulic/blob/master/shared/src/main/java/org/geysermc/hydraulic/block/BlockPackModule.java#L54
@@ -202,6 +222,8 @@ public class BlockTranslator extends Translator {
 
                     ResourceHelper.copyResource(identifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
                 }
+
+                stateComponentBuilder.collisionBox(voxelShapeToBoxComponent(realBlock.getDefaultState().getCollisionShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)));
 
                 CustomBlockComponents stateComponents = stateComponentBuilder.build();
                 if (state.getProperties().isEmpty()) {

@@ -105,7 +105,8 @@ public class PackGenerator {
         Path textsDir = packPath.resolve("texts");
         PathHelper.createDirectoryOrThrow(textsDir);
 
-        JsonArray languages = new JsonArray();
+        // TODO: I'm not sure if translations are even necessary
+        /*JsonArray languages = new JsonArray();
 
         ArrayList<Pair<String, String>> allKeys = new ArrayList<>();
         translators.forEach(t -> allKeys.addAll(t.getTranslations()));
@@ -122,7 +123,7 @@ public class PackGenerator {
 
             languages.add(code);
         });
-        writeJsonToFile(languages, textsDir.resolve("languages.json").toFile());
+        writeJsonToFile(languages, textsDir.resolve("languages.json").toFile());*/
 
         Optional<String> icon = metadata.getIconPath(512);
         if (icon.isEmpty()) icon = FabricLoader.getInstance().getModContainer("bedframe").get().getMetadata().getIconPath(512);

@@ -5,12 +5,14 @@ import lol.sylvie.bedframe.api.Bedframe;
 import lol.sylvie.bedframe.api.BedframeItem;
 import lol.sylvie.bedframe.geyser.Translator;
 import lol.sylvie.bedframe.util.ResourceHelper;
+import net.minecraft.client.resource.language.I18n;
 import net.minecraft.component.ComponentMap;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.FoodComponent;
 import net.minecraft.item.*;
 import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.registry.Registries;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
@@ -61,6 +63,7 @@ public class ItemTranslator extends Translator {
             NonVanillaCustomItemData.Builder itemBuilder = NonVanillaCustomItemData.builder()
                     .name(identifier.toString())
                     .identifier(identifier.toString())
+                    .displayName(Text.translatable(realItem.getTranslationKey()).getString())
                     .allowOffhand(true);
 
             ComponentMap components = realDefaultItemStack.getComponents();
@@ -110,7 +113,7 @@ public class ItemTranslator extends Translator {
             if (realItem instanceof BlockItem blockItem) {
                 String blockId = Registries.BLOCK.getEntry(blockItem.getBlock()).getIdAsString();
                 itemBuilder.block(blockId);
-                itemBuilder.translationString("tile." + blockId + ".name");
+                //itemBuilder.translationString("tile." + blockId + ".name");
             } else {
                 // Item names
                 String bedrockKey = "item." + identifier + ".name";
