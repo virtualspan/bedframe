@@ -74,6 +74,7 @@ dependencies {
 
 	// Geyser
 	compileOnly("org.geysermc.geyser:api:${project.geyser_version}")
+	compileOnly("org.geysermc.geyser:core:${project.geyser_version}")
 }
 
 processResources {

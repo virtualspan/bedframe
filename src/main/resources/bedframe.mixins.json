@@ -3,6 +3,7 @@
   "package": "lol.sylvie.bedframe.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "CustomItemRegistryPopulatorMixin",
     "PolymerItemMixin",
     "PolymerItemUtilsMixin"
   ],

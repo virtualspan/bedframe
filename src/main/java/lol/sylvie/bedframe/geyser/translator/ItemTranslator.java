@@ -18,6 +18,7 @@ import org.geysermc.geyser.api.event.EventRegistrar;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomItemsEvent;
 import org.geysermc.geyser.api.item.custom.CustomItemOptions;
 import org.geysermc.geyser.api.item.custom.NonVanillaCustomItemData;
+import org.geysermc.geyser.api.util.CreativeCategory;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.nio.file.Path;
@@ -81,6 +82,8 @@ public class ItemTranslator extends Translator {
                     .name(identifier.toString())
                     .identifier(identifier.toString())
                     .displayName(translated)
+                    .creativeGroup("itemGroup." + identifier.getNamespace() + ".items")
+                    .creativeCategory(CreativeCategory.CONSTRUCTION.id())
                     .allowOffhand(true);
 
             ComponentMap components = realDefaultItemStack.getComponents();
@@ -103,6 +106,19 @@ public class ItemTranslator extends Translator {
 
             itemBuilder.customItemOptions(itemOptions.build());
             itemBuilder.javaId(Registries.ITEM.getRawIdOrThrow(realItem));
+
+            if (realItem instanceof BlockItem blockItem) {
+                String blockId = Registries.BLOCK.getEntry(blockItem.getBlock()).getIdAsString();
+                itemBuilder.icon(""); // see CustomItemRegistryPopulatorMixin
+                itemBuilder.block(blockId);
+                //itemBuilder.translationString("tile." + blockId + ".name");
+            } else {
+                // Item names
+                String bedrockKey = "item." + identifier + ".name";
+                addTranslationKey(bedrockKey, realItem.getTranslationKey());
+                //itemBuilder.translationString(bedrockKey);
+            }
+
             JsonObject itemDescription = ResourceHelper.readJsonResource(model.getNamespace(), "items/" + model.getPath() + ".json");
             Identifier modelId = Identifier.of(itemDescription.get("model").getAsJsonObject().get("model").getAsString());
 
@@ -123,19 +139,6 @@ public class ItemTranslator extends Translator {
                 ResourceHelper.copyResource(textureId.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
 
                 itemBuilder.icon(textureName);
-            } else {
-                itemBuilder.displayHandheld(true);
-            }
-
-            if (realItem instanceof BlockItem blockItem) {
-                String blockId = Registries.BLOCK.getEntry(blockItem.getBlock()).getIdAsString();
-                itemBuilder.block(blockId);
-                //itemBuilder.translationString("tile." + blockId + ".name");
-            } else {
-                // Item names
-                String bedrockKey = "item." + identifier + ".name";
-                //addTranslationKey(bedrockKey, realItem.getTranslationKey());
-                itemBuilder.translationString(bedrockKey);
             }
 
             registeredItems.add(realItem);
