@@ -280,7 +280,7 @@ public class BlockTranslator extends Translator {
 
             NonVanillaCustomBlockData data = builder.build();
             event.register(data);
-            event.registerItemOverride(Identifier.ofVanilla("grass_block").toString(), data);
+
             // Registering the block states
             for (BlockState state : realBlock.getStateManager().getStates()) {
                 CustomBlockState.Builder stateBuilder = data.blockStateBuilder();
