@@ -3,7 +3,6 @@ package lol.sylvie.bedframe.util;
 import xyz.nucleoid.server.translations.api.language.ServerLanguageDefinition;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class TranslationHelper {
     public static ArrayList<String> LANGUAGES = new ArrayList<>();

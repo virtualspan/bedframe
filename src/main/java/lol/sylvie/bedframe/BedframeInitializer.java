@@ -1,30 +1,27 @@
 package lol.sylvie.bedframe;
 
-import static lol.sylvie.bedframe.util.BedframeConstants.LOGGER;
-import static lol.sylvie.bedframe.util.BedframeConstants.MOD_ID;
-
-import eu.pb4.polymer.core.api.item.PolymerItemUtils;
-import lol.sylvie.bedframe.util.ClassHelper;
+import lol.sylvie.bedframe.geyser.TranslationManager;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.network.ServerPlayerEntity;
-import org.geysermc.geyser.api.GeyserApi;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import xyz.nucleoid.packettweaker.PacketContext;
+import net.fabricmc.loader.api.metadata.Person;
 
 import java.nio.file.Path;
-import java.util.function.Predicate;
+
+import static lol.sylvie.bedframe.util.BedframeConstants.*;
 
 public class BedframeInitializer implements ModInitializer {
 	public static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID);
 
 	@Override
 	public void onInitialize() {
-		LOGGER.info("Initializing Bedframe!");
-		if (!CONFIG_DIR.toFile().exists() && !CONFIG_DIR.toFile().mkdir())
-			throw new RuntimeException("Unable to create config directory. Your file permissions are messed up.");
+		LOGGER.info("Bedframe - {}", METADATA.getVersion().getFriendlyString());
+		LOGGER.info("Contributors: {}", String.join(", ", METADATA.getAuthors().stream().map(Person::getName).toList()));
+
+		ServerLifecycleEvents.SERVER_STARTING.register(ignored -> {
+			TranslationManager manager = new TranslationManager();
+			manager.registerHooks();
+		});
 	}
 }

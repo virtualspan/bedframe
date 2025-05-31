@@ -1,7 +1,6 @@
 package lol.sylvie.testmod.block;
 
-import lol.sylvie.bedframe.api.BedframeBlock;
-import lol.sylvie.bedframe.api.impl.BedframeBlockItem;
+import eu.pb4.polymer.core.api.item.PolymerBlockItem;
 import lol.sylvie.testmod.Testmod;
 import lol.sylvie.testmod.block.impl.TexturedExampleBlock;
 import lol.sylvie.testmod.block.impl.TexturedFlowerExampleBlock;
@@ -45,15 +44,11 @@ public class ModBlocks {
         RegistryKey<Block> blockKey = keyOfBlock(name);
         Block block = blockFactory.apply(settings.registryKey(blockKey));
 
-        if (block instanceof BedframeBlock bedframeBlock)
-            Testmod.BEDFRAME.register(bedframeBlock, blockKey.getValue());
-
         if (polymerItem != null) {
             RegistryKey<Item> itemKey = keyOfItem(name);
 
-            BedframeBlockItem blockItem = new BedframeBlockItem(block, new Item.Settings().registryKey(itemKey).useBlockPrefixedTranslationKey());
+            PolymerBlockItem blockItem = new PolymerBlockItem(block, new Item.Settings().registryKey(itemKey).useBlockPrefixedTranslationKey(), polymerItem, true);
             Registry.register(Registries.ITEM, itemKey, blockItem);
-            Testmod.BEDFRAME.register(blockItem, itemKey.getValue());
         }
 
         return Registry.register(Registries.BLOCK, blockKey, block);

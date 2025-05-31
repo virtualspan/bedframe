@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -19,7 +18,7 @@ public class ZipHelper {
             ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(destination));
             Files.walkFileTree(source, new SimpleFileVisitor<>() {
                 @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                public @NotNull FileVisitResult visitFile(@NotNull Path file, @NotNull BasicFileAttributes attrs) throws IOException {
                     zos.putNextEntry(new ZipEntry(source.relativize(file).toString()));
                     Files.copy(file, zos);
                     zos.closeEntry();
@@ -27,6 +26,6 @@ public class ZipHelper {
                 }
             });
             zos.close();
-        } catch (IOException e) {e.printStackTrace();}
+        } catch (IOException e) { BedframeConstants.LOGGER.error("Couldn't zip resource pack", e); }
     }
 }

@@ -1,15 +1,15 @@
 # Bedframe
 
-> [!CAUTION]
-> THIS IS VERY MUCH A WIP! DO NOT EXPECT ANYTHING CLOSE TO FUNCTIONAL UNTIL THIS WARNING IS NO LONGER PRESENT
-
 ## Premise
 
-Library mod that handles textured/custom server-side Polymer blocks across both Geyser and Java clients.
+Translation layer that converts textured/custom server-side Polymer blocks and items to native Bedrock representations.
 
-## Limits
+## Requirements
 
-- You *must* be using Geyser on the *server*. It won't work on the proxy.
+- [Geyser-Fabric](https://geysermc.org/download)
+- [Polymer](https://modrinth.com/mod/polymer)
+
+You also probably want Polymer's Auto-Host feature, but Bedframe doesn't require it.
 
 ## License
 

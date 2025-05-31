@@ -1,11 +1,9 @@
 package lol.sylvie.bedframe.geyser;
 
 import lol.sylvie.bedframe.BedframeInitializer;
-import lol.sylvie.bedframe.api.Bedframe;
 import lol.sylvie.bedframe.geyser.translator.BlockTranslator;
 import lol.sylvie.bedframe.geyser.translator.ItemTranslator;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import org.geysermc.api.Geyser;
+import lol.sylvie.bedframe.util.BedframeConstants;
 import org.geysermc.geyser.api.GeyserApi;
 import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
@@ -16,40 +14,31 @@ import org.geysermc.geyser.api.pack.ResourcePack;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.List;
 
-public class GeyserHandler implements EventRegistrar {
-    private final Bedframe bedframe;
-    private final PackGenerator packGenerator;
-    private final ArrayList<Translator> translators = new ArrayList<>();
-
+public class TranslationManager implements EventRegistrar {
+    private static final PackGenerator packGenerator = new PackGenerator();
     private boolean generatedResources = false;
 
-    public GeyserHandler(Bedframe bedframe) {
-        this.bedframe = bedframe;
-        this.packGenerator = new PackGenerator(this.bedframe);
-
-        translators.add(new BlockTranslator(bedframe));
-        translators.add(new ItemTranslator(bedframe));
-    }
+    public TranslationManager() {}
 
     public void registerHooks() {
-        if (!Geyser.isRegistered()) {
-            ServerLifecycleEvents.SERVER_STARTING.register(ignored -> registerHooks());
+        List<Translator> translators = List.of(
+                new BlockTranslator(),
+                new ItemTranslator()
+        );
+
+        // Generate the fold
+        Path packSourceDir;
+        try {
+            packSourceDir = Files.createTempDirectory("bedframe");
+        } catch (IOException e) {
+            BedframeConstants.LOGGER.error("Couldn't create resource pack temporary directory", e);
             return;
         }
 
-        Path packSourceDir;
-        Path resourcePackDir;
-        try {
-            packSourceDir = Files.createTempDirectory("bedframe");
 
-            resourcePackDir = BedframeInitializer.CONFIG_DIR.resolve("resource-packs");
-            if (Files.notExists(resourcePackDir))
-                Files.createDirectory(resourcePackDir);
-
-        } catch (IOException e) { throw new RuntimeException(e); };
-        Path resourcePack = resourcePackDir.resolve(bedframe.getModId() + ".zip");
+        Path resourcePack = BedframeInitializer.CONFIG_DIR.resolve("bedframe.zip");
 
         EventBus<EventRegistrar> eventBus = GeyserApi.api().eventBus();
         for (Translator translator : translators) {
@@ -58,7 +47,7 @@ public class GeyserHandler implements EventRegistrar {
 
         eventBus.subscribe(this, GeyserDefineResourcePacksEvent.class, event -> {
             try {
-                // For some reason, GeyserDefineResourcePacksEvent is called *before* blocks
+                // For some reason, GeyserDefineResourcePacksEvent is called once *before* blocks
                 // FIXME: It's probably better to generate resources before the event is ever called
                 if (!translators.stream().allMatch(Translator::hasProvidedResources)) return;
 
@@ -70,7 +59,9 @@ public class GeyserHandler implements EventRegistrar {
                 }
 
                 event.register(ResourcePack.create(PackCodec.path(resourcePack)));
-            } catch (IOException e) { throw new RuntimeException(e); }
+            } catch (IOException e) {
+                BedframeConstants.LOGGER.error("Couldn't generate resource pack", e);
+            }
         });
     }
 }

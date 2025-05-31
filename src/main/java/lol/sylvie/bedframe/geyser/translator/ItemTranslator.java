@@ -1,11 +1,10 @@
 package lol.sylvie.bedframe.geyser.translator;
 
 import com.google.gson.JsonObject;
-import lol.sylvie.bedframe.api.Bedframe;
-import lol.sylvie.bedframe.api.BedframeItem;
+import eu.pb4.polymer.core.api.item.PolymerItem;
 import lol.sylvie.bedframe.geyser.Translator;
+import lol.sylvie.bedframe.util.BedframeConstants;
 import lol.sylvie.bedframe.util.ResourceHelper;
-import net.minecraft.client.resource.language.I18n;
 import net.minecraft.component.ComponentMap;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.FoodComponent;
@@ -22,20 +21,37 @@ import org.geysermc.geyser.api.item.custom.NonVanillaCustomItemData;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 
 import static lol.sylvie.bedframe.util.PathHelper.createDirectoryOrThrow;
 
 public class ItemTranslator extends Translator {
-    public ItemTranslator(Bedframe bedframe) {
-        super(bedframe);
+    private final HashMap<Identifier, PolymerItem> items = new HashMap<>();
+    private static final ArrayList<Item> registeredItems = new ArrayList<>();
+
+    public ItemTranslator() {
+        Stream<Identifier> itemIds = Registries.ITEM.getIds().stream();
+
+        itemIds.forEach(identifier -> {
+            Item item = Registries.ITEM.get(identifier);
+            if (item instanceof PolymerItem polymerItem) {
+                items.put(identifier, polymerItem);
+            }
+        });
     }
 
-    private void forEachItem(BiConsumer<Identifier, BedframeItem> function) {
-        for (Map.Entry<Identifier, BedframeItem> entry : this.bedframe.getItems().entrySet()) {
+    private void forEachItem(BiConsumer<Identifier, PolymerItem> function) {
+        for (Map.Entry<Identifier, PolymerItem> entry : items.entrySet()) {
             function.accept(entry.getKey(), entry.getValue());
         }
+    }
+
+    public static boolean isTexturedItem(Item item) {
+        return registeredItems.contains(item);
     }
 
     private void handle(GeyserDefineCustomItemsEvent event, Path packRoot) {
@@ -43,13 +59,13 @@ public class ItemTranslator extends Translator {
         createDirectoryOrThrow(textureDir.resolve("items"));
 
         JsonObject itemTextureObject = new JsonObject();
-        itemTextureObject.addProperty("resource_pack_name", bedframe.getModId());
+        itemTextureObject.addProperty("resource_pack_name", BedframeConstants.MOD_ID);
         itemTextureObject.addProperty("texture_name", "atlas.items");
 
         JsonObject textureDataObject = new JsonObject();
 
         forEachItem((identifier, item) -> {
-            Item realItem = item.getItem();
+            Item realItem = Registries.ITEM.get(identifier);
             ItemStack realDefaultItemStack = realItem.getDefaultStack();
 
             // I know there is item.getPolymerItemModel but some developers (cough me cough) just override the itemstack model
@@ -60,10 +76,11 @@ public class ItemTranslator extends Translator {
 
             CustomItemOptions.Builder itemOptions = CustomItemOptions.builder();
 
+            String translated = Text.translatable(realItem.getTranslationKey()).getString();
             NonVanillaCustomItemData.Builder itemBuilder = NonVanillaCustomItemData.builder()
                     .name(identifier.toString())
                     .identifier(identifier.toString())
-                    .displayName(Text.translatable(realItem.getTranslationKey()).getString())
+                    .displayName(translated)
                     .allowOffhand(true);
 
             ComponentMap components = realDefaultItemStack.getComponents();
@@ -117,10 +134,11 @@ public class ItemTranslator extends Translator {
             } else {
                 // Item names
                 String bedrockKey = "item." + identifier + ".name";
-                addTranslationKey(bedrockKey, realItem.getTranslationKey());
+                //addTranslationKey(bedrockKey, realItem.getTranslationKey());
                 itemBuilder.translationString(bedrockKey);
             }
 
+            registeredItems.add(realItem);
             event.register(itemBuilder.build());
         });
 
@@ -131,8 +149,6 @@ public class ItemTranslator extends Translator {
 
     @Override
     public void register(EventBus<EventRegistrar> eventBus, Path packRoot) {
-        eventBus.subscribe(this, GeyserDefineCustomItemsEvent.class, event -> {
-            handle(event, packRoot);
-        });
+        eventBus.subscribe(this, GeyserDefineCustomItemsEvent.class, event -> handle(event, packRoot));
     }
 }

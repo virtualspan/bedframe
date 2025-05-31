@@ -1,10 +1,8 @@
 package lol.sylvie.bedframe.util;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.minecraft.util.Identifier;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;

@@ -2,19 +2,13 @@ package lol.sylvie.bedframe.geyser;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import lol.sylvie.bedframe.api.Bedframe;
-import lol.sylvie.bedframe.util.TranslationHelper;
 import net.minecraft.util.Pair;
 import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
-import xyz.nucleoid.server.translations.api.language.ServerLanguage;
-import xyz.nucleoid.server.translations.api.language.TranslationAccess;
-import xyz.nucleoid.server.translations.impl.ServerTranslations;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
@@ -26,16 +20,8 @@ import static lol.sylvie.bedframe.util.BedframeConstants.GSON;
  * Converts Java objects to Bedrock equivalents
  */
 public abstract class Translator implements EventRegistrar {
-    protected final Bedframe bedframe;
     private boolean providedResources = false;
-
-    private ArrayList<Pair<String, String>> translations = new ArrayList<>();
-
-    public Translator(Bedframe bedframe) {
-        this.bedframe = bedframe;
-    }
-
-
+    private final ArrayList<Pair<String, String>> translations = new ArrayList<>();
 
     /**
      * Registers the Geyser events required of this translator

@@ -2,16 +2,12 @@ package lol.sylvie.bedframe.geyser.translator;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import lol.sylvie.bedframe.BedframeInitializer;
-import lol.sylvie.bedframe.api.Bedframe;
-import lol.sylvie.bedframe.api.BedframeBlock;
+import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
 import lol.sylvie.bedframe.geyser.Translator;
 import lol.sylvie.bedframe.util.ResourceHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.command.argument.BlockArgumentParser;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.EnumProperty;
@@ -39,8 +35,8 @@ import xyz.nucleoid.packettweaker.PacketContext;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 
-import static lol.sylvie.bedframe.util.BedframeConstants.GSON;
 import static lol.sylvie.bedframe.util.BedframeConstants.LOGGER;
 import static lol.sylvie.bedframe.util.PathHelper.createDirectoryOrThrow;
 
@@ -82,12 +78,21 @@ public class BlockTranslator extends Translator {
             )
     );
 
-    public BlockTranslator(Bedframe bedframe) {
-        super(bedframe);
+    private final HashMap<Identifier, PolymerTexturedBlock> blocks = new HashMap<>();
+
+    public BlockTranslator() {
+        Stream<Identifier> blockIds = Registries.BLOCK.getIds().stream();
+
+        blockIds.forEach(identifier -> {
+            Block block = Registries.BLOCK.get(identifier);
+            if (block instanceof PolymerTexturedBlock texturedBlock) {
+                blocks.put(identifier, texturedBlock);
+            }
+        });
     }
 
-    private void forEachBlock(BiConsumer<Identifier, BedframeBlock> function) {
-        for (Map.Entry<Identifier, BedframeBlock> entry : this.bedframe.getBlocks().entrySet()) {
+    private void forEachBlock(BiConsumer<Identifier, PolymerTexturedBlock> function) {
+        for (Map.Entry<Identifier, PolymerTexturedBlock> entry : blocks.entrySet()) {
             function.accept(entry.getKey(), entry.getValue());
         }
     }
@@ -97,7 +102,7 @@ public class BlockTranslator extends Translator {
             switch (property) {
                 case IntProperty intProperty ->
                         builder.intProperty(property.getName(), List.copyOf(intProperty.getValues()));
-                case BooleanProperty booleanProperty ->
+                case BooleanProperty ignored ->
                         builder.booleanProperty(property.getName());
                 case EnumProperty<?> enumProperty ->
                         builder.stringProperty(enumProperty.getName(), enumProperty.getValues().stream().map(Enum::name).map(String::toLowerCase).toList());
@@ -136,13 +141,13 @@ public class BlockTranslator extends Translator {
         createDirectoryOrThrow(textureDir.resolve("blocks"));
 
         JsonObject terrainTextureObject = new JsonObject();
-        terrainTextureObject.addProperty("resource_pack_name", bedframe.getModId());
+        terrainTextureObject.addProperty("resource_pack_name", "Bedframe");
         terrainTextureObject.addProperty("texture_name", "atlas.terrain");
 
         JsonObject textureDataObject = new JsonObject();
 
         forEachBlock((identifier, block) -> {
-            Block realBlock = block.getBlock();
+            Block realBlock = Registries.BLOCK.get(identifier);
             // Block names
             addTranslationKey("tile." + identifier.toString() + ".name", realBlock.getTranslationKey());
 
@@ -271,13 +276,6 @@ public class BlockTranslator extends Translator {
                 CustomBlockState customBlockState = stateBuilder.build();
                 event.registerOverride(BlockArgumentParser.stringifyBlockState(block.getPolymerBlockState(state, PacketContext.get())), customBlockState);
             }
-
-            //Item blockItem = realBlock.asItem();
-            //if (blockItem != Items.AIR) {
-            //    String itemId = Registries.ITEM.getEntry(blockItem).getIdAsString();
-            //    System.out.println(itemId);
-            //    event.registerItemOverride(itemId, data);
-            //}
         });
 
         terrainTextureObject.add("texture_data", textureDataObject);
@@ -287,9 +285,7 @@ public class BlockTranslator extends Translator {
 
     @Override
     public void register(EventBus<EventRegistrar> eventBus, Path packRoot) {
-        eventBus.subscribe(this, GeyserDefineCustomBlocksEvent.class, event -> {
-            handle(event, packRoot);
-        });
+        eventBus.subscribe(this, GeyserDefineCustomBlocksEvent.class, event -> handle(event, packRoot));
     }
 
     record ModelData(String parent, Map<String, String> textures) {

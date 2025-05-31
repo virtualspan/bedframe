@@ -4,25 +4,20 @@ import eu.pb4.polymer.blocks.api.BlockModelType;
 import eu.pb4.polymer.blocks.api.PolymerBlockModel;
 import eu.pb4.polymer.blocks.api.PolymerBlockResourceUtils;
 import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
-import lol.sylvie.testmod.Testmod;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.PillarBlock;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Direction;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.util.HashMap;
 
-public class TexturedLogExampleBlock extends PillarBlock implements PolymerTexturedBlock {
+public class SimplePolymerTexturedBlock extends Block implements PolymerTexturedBlock {
     private final HashMap<BlockState, BlockState> polymerBlockStates = new HashMap<>();
 
-    public TexturedLogExampleBlock(Settings settings) {
+    public SimplePolymerTexturedBlock(Settings settings, BlockModelType modelType, Identifier model) {
         super(settings);
         for (BlockState state : this.getStateManager().getStates()) {
-            Direction.Axis axis = state.get(AXIS);
-            boolean horizontal = axis.isHorizontal();
-            Identifier model = Identifier.of(Testmod.MOD_ID, "block/example_log" + (horizontal ? "_horizontal" : ""));
-            polymerBlockStates.put(state, PolymerBlockResourceUtils.requestBlock(BlockModelType.FULL_BLOCK, PolymerBlockModel.of(model, horizontal ? 90 : 0, axis == Direction.Axis.Z ? 0 : 90)));
+            polymerBlockStates.put(state, PolymerBlockResourceUtils.requestBlock(modelType, PolymerBlockModel.of(model)));
         }
     }
 
