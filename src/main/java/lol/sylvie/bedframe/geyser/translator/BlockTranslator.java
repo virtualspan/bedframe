@@ -10,6 +10,9 @@ import lol.sylvie.bedframe.util.ResourceHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.command.argument.BlockArgumentParser;
+import net.minecraft.item.Item;
+import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.state.property.IntProperty;
@@ -27,6 +30,7 @@ import org.geysermc.geyser.api.block.custom.component.TransformationComponent;
 import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomBlocksEvent;
+import org.geysermc.geyser.api.util.CreativeCategory;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.nio.file.Path;
@@ -42,6 +46,9 @@ public class BlockTranslator extends Translator {
     private static final Map<String, List<Pair<String, String>>> parentFaceMap = Map.of(
             "minecraft:block/cube_all", List.of(
                     new Pair<>("all", "*")
+            ),
+            "minecraft:block/cross", List.of(
+                    new Pair<>("cross", "*")
             ),
             "minecraft:block/cube_bottom_top", List.of(
                     new Pair<>("side", "*"),
@@ -117,13 +124,12 @@ public class BlockTranslator extends Translator {
         forEachBlock((identifier, block) -> {
             Block realBlock = block.getBlock();
             // Block names
-            forEachLanguage(packRoot, (writer, translationAccess) -> {
-                writeOrThrow(writer, "tile." + identifier.toString() + ".name=" + translationAccess.get(realBlock.getTranslationKey()));
-            });
+            addTranslationKey("tile." + identifier.toString() + ".name", realBlock.getTranslationKey());
 
             NonVanillaCustomBlockData.Builder builder = NonVanillaCustomBlockData.builder()
                     .name(identifier.getPath())
                     .namespace(identifier.getNamespace())
+                    .creativeCategory(CreativeCategory.CONSTRUCTION)
                     .includedInCreativeInventory(true);
 
             // Properties
@@ -132,7 +138,7 @@ public class BlockTranslator extends Translator {
             // Parsing models
             HashMap<String, Pair<Integer, Integer>> rotationData = new HashMap<>();
             HashMap<String, ModelData> models = new HashMap<>();
-            JsonObject variants = ResourceHelper.readJsonResource(identifier.getNamespace(), "blockstates/" + identifier.getPath() + ".json", GSON)
+            JsonObject variants = ResourceHelper.readJsonResource(identifier.getNamespace(), "blockstates/" + identifier.getPath() + ".json")
                     .getAsJsonObject("variants");
             forEachKey(variants, (key, element) -> {
                 JsonObject object = element.getAsJsonObject();
@@ -144,7 +150,7 @@ public class BlockTranslator extends Translator {
                 int y = potentialY == null ? 0 : potentialY.getAsInt();
 
                 String modelPath = object.get("model").getAsString();
-                JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + Identifier.of(modelPath).getPath() + ".json", GSON);
+                JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + Identifier.of(modelPath).getPath() + ".json");
 
                 rotationData.put(key, new Pair<>(x, y));
                 models.put(key, ModelData.fromJson(model));
@@ -243,6 +249,13 @@ public class BlockTranslator extends Translator {
                 CustomBlockState customBlockState = stateBuilder.build();
                 event.registerOverride(BlockArgumentParser.stringifyBlockState(block.getPolymerBlockState(state, PacketContext.get())), customBlockState);
             }
+
+            //Item blockItem = realBlock.asItem();
+            //if (blockItem != Items.AIR) {
+            //    String itemId = Registries.ITEM.getEntry(blockItem).getIdAsString();
+            //    System.out.println(itemId);
+            //    event.registerItemOverride(itemId, data);
+            //}
         });
 
         terrainTextureObject.add("texture_data", textureDataObject);

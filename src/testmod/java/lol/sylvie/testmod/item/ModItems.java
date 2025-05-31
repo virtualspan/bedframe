@@ -1,7 +1,9 @@
 package lol.sylvie.testmod.item;
 
-import eu.pb4.polymer.core.api.item.SimplePolymerItem;
 import eu.pb4.polymer.core.api.item.PolymerItemGroupUtils;
+import lol.sylvie.bedframe.api.BedframeBlock;
+import lol.sylvie.bedframe.api.BedframeItem;
+import lol.sylvie.bedframe.api.impl.SimpleBedframeItem;
 import lol.sylvie.testmod.Testmod;
 import lol.sylvie.testmod.block.ModBlocks;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
@@ -27,14 +29,17 @@ public class ModItems {
 
     public static final Item EXAMPLE_ITEM = register(
             "example_item",
-            settings -> new SimplePolymerItem(settings, Items.CLAY_BALL),
+            SimpleBedframeItem::new,
             new Item.Settings()
     );
 
     public static Item register(String name, Function<Item.Settings, Item> itemFactory, Item.Settings settings) {
-        RegistryKey<Item> itemKey = RegistryKey.of(RegistryKeys.ITEM, Identifier.of(lol.sylvie.testmod.Testmod.MOD_ID, name));
+        RegistryKey<Item> itemKey = RegistryKey.of(RegistryKeys.ITEM, Identifier.of(Testmod.MOD_ID, name));
         Item item = itemFactory.apply(settings.registryKey(itemKey));
         Registry.register(Registries.ITEM, itemKey, item);
+
+        if (item instanceof BedframeItem bedframeItem)
+            Testmod.BEDFRAME.register(bedframeItem, itemKey.getValue());
 
         return item;
     }
@@ -49,8 +54,7 @@ public class ModItems {
             // Or blocks:
             itemGroup.add(ModBlocks.EXAMPLE_BLOCK.asItem());
             itemGroup.add(ModBlocks.EXAMPLE_LOG.asItem());
+            itemGroup.add(ModBlocks.EXAMPLE_FLOWER.asItem());
         });
-
-        Testmod.BEDFRAME.register(EXAMPLE_ITEM);
     }
 }

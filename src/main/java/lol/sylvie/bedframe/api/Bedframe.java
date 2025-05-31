@@ -1,5 +1,6 @@
 package lol.sylvie.bedframe.api;
 
+import eu.pb4.polymer.core.api.item.PolymerItem;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import lol.sylvie.bedframe.geyser.GeyserHandler;
 import lol.sylvie.bedframe.util.BedframeConstants;
@@ -18,7 +19,7 @@ import java.util.HashMap;
 public class Bedframe {
     private final String modId;
     public HashMap<Identifier, BedframeBlock> blocks = new HashMap<>();
-    public ArrayList<Item> items = new ArrayList<>();
+    public HashMap<Identifier, BedframeItem> items = new HashMap<>();
 
     private final Logger logger;
 
@@ -34,12 +35,14 @@ public class Bedframe {
         }
     }
 
+    // TODO: I really would like to avoid having mods register altogether, and that should be possible?
+    // If so, we can forego the entire `api` package, which would be nice :)
     public void register(BedframeBlock block, Identifier identifier) {
         blocks.put(identifier, block);
     }
 
-    public void register(Item item) {
-        items.add(item);
+    public void register(BedframeItem item, Identifier identifier) {
+        items.put(identifier, item);
     }
 
     public String getModId() {
@@ -50,7 +53,7 @@ public class Bedframe {
         return blocks;
     }
 
-    public ArrayList<Item> getItems() {
+    public HashMap<Identifier, BedframeItem> getItems() {
         return items;
     }
 

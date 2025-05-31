@@ -13,16 +13,5 @@ public class BedframeConstants {
     public static final String MOD_ID = "bedframe";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    public static boolean isGeyserLoaded = false;
-
-    static {
-        try {
-            Class.forName("org.geysermc.api.Geyser");
-            LOGGER.info("Geyser detected!");
-
-            isGeyserLoaded = true;
-        } catch (ClassNotFoundException e) {
-            LOGGER.warn("Geyser is not loaded.");
-        }
-    }
+    public static boolean isGeyserLoaded = ClassHelper.exists("org.geysermc.api.Geyser");
 }

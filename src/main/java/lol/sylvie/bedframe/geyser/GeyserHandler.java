@@ -3,6 +3,7 @@ package lol.sylvie.bedframe.geyser;
 import lol.sylvie.bedframe.BedframeInitializer;
 import lol.sylvie.bedframe.api.Bedframe;
 import lol.sylvie.bedframe.geyser.translator.BlockTranslator;
+import lol.sylvie.bedframe.geyser.translator.ItemTranslator;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import org.geysermc.api.Geyser;
 import org.geysermc.geyser.api.GeyserApi;
@@ -29,6 +30,7 @@ public class GeyserHandler implements EventRegistrar {
         this.packGenerator = new PackGenerator(this.bedframe);
 
         translators.add(new BlockTranslator(bedframe));
+        translators.add(new ItemTranslator(bedframe));
     }
 
     public void registerHooks() {
@@ -63,7 +65,7 @@ public class GeyserHandler implements EventRegistrar {
                 // This event is called multiple times, but regenerating the resource pack each time is redundant
                 if (!generatedResources) {
                     Files.deleteIfExists(resourcePack);
-                    packGenerator.generatePack(packSourceDir, resourcePack.toFile());
+                    packGenerator.generatePack(packSourceDir, resourcePack.toFile(), translators);
                     generatedResources = true;
                 }
 

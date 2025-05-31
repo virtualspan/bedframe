@@ -1,14 +1,13 @@
 package lol.sylvie.testmod.block;
 
-import eu.pb4.polymer.core.api.item.PolymerBlockItem;
 import lol.sylvie.bedframe.api.BedframeBlock;
-import lol.sylvie.bedframe.api.impl.SimpleBedframeBlock;
+import lol.sylvie.bedframe.api.impl.BedframeBlockItem;
 import lol.sylvie.testmod.Testmod;
 import lol.sylvie.testmod.block.impl.TexturedExampleBlock;
+import lol.sylvie.testmod.block.impl.TexturedFlowerExampleBlock;
 import lol.sylvie.testmod.block.impl.TexturedLogExampleBlock;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
-import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
@@ -35,6 +34,12 @@ public class ModBlocks {
             Items.OAK_LOG
     );
 
+    public static final Block EXAMPLE_FLOWER = register(
+            "example_flower",
+            TexturedFlowerExampleBlock::new,
+            AbstractBlock.Settings.create().sounds(BlockSoundGroup.GRASS).noCollision().breakInstantly().nonOpaque(),
+            Items.WITHER_ROSE
+    );
 
     private static Block register(String name, Function<AbstractBlock.Settings, Block> blockFactory, AbstractBlock.Settings settings, Item polymerItem) {
         RegistryKey<Block> blockKey = keyOfBlock(name);
@@ -46,8 +51,9 @@ public class ModBlocks {
         if (polymerItem != null) {
             RegistryKey<Item> itemKey = keyOfItem(name);
 
-            BlockItem blockItem = new PolymerBlockItem(block, new Item.Settings().registryKey(itemKey).useBlockPrefixedTranslationKey(), polymerItem, true);
+            BedframeBlockItem blockItem = new BedframeBlockItem(block, new Item.Settings().registryKey(itemKey).useBlockPrefixedTranslationKey());
             Registry.register(Registries.ITEM, itemKey, blockItem);
+            Testmod.BEDFRAME.register(blockItem, itemKey.getValue());
         }
 
         return Registry.register(Registries.BLOCK, blockKey, block);
