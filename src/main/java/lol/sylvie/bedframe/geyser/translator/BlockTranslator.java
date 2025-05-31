@@ -231,17 +231,18 @@ public class BlockTranslator extends Translator {
                     String javaFaceName = face.getLeft();
                     String bedrockFaceName = face.getRight();
                     if (!modelData.textures.containsKey(javaFaceName)) continue;
-                    String bedrockTextureName = modelData.textures.get(javaFaceName);
-                    String texturePath = "textures/" + bedrockTextureName;
+
+                    String textureName = modelData.textures.get(javaFaceName);
+                    String texturePath = "textures/" + textureName;
                     String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
 
                     JsonObject thisTexture = new JsonObject();
                     thisTexture.addProperty("textures", bedrockPath);
-                    textureDataObject.add(bedrockTextureName, thisTexture);
+                    textureDataObject.add(textureName, thisTexture);
 
                     stateComponentBuilder.materialInstance(bedrockFaceName, MaterialInstance.builder()
                             .renderMethod(renderMethod)
-                            .texture(bedrockTextureName)
+                            .texture(textureName)
                             .faceDimming(true)
                             .ambientOcclusion(true)
                             .build());
@@ -266,11 +267,9 @@ public class BlockTranslator extends Translator {
                         propertyValue = "'" + propertyValue.toLowerCase() + "'";
                     }
 
-                    String condition = "q.block_property('%name%') == %value%"
+                    conditions.add("q.block_property('%name%') == %value%"
                             .replace("%name%", property.getName())
-                            .replace("%value%", propertyValue);
-
-                    conditions.add(condition);
+                            .replace("%value%", propertyValue));
                 }
 
                 String stateCondition = String.join(" && ", conditions);
