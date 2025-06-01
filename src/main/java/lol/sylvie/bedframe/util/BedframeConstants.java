@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
+import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,4 +15,7 @@ public class BedframeConstants {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     public static final ModMetadata METADATA = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow().getMetadata();
+
+    public static final Identifier GENERATED_IDENTIFIER = Identifier.ofVanilla("item/generated");
+    public static final Identifier HANDHELD_IDENTIFIER = Identifier.ofVanilla("item/handheld");
 }
