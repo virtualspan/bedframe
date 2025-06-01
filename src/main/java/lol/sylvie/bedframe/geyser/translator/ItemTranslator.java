@@ -125,7 +125,7 @@ public class ItemTranslator extends Translator {
             JsonObject modelObject = ResourceHelper.readJsonResource(modelId.getNamespace(), "models/" + modelId.getPath() + ".json");
             Identifier modelType = Identifier.of(modelObject.get("parent").getAsString());
 
-            if (modelType.equals(BedframeConstants.GENERATED_IDENTIFIER)) {
+            if (modelType.equals(BedframeConstants.GENERATED_IDENTIFIER) || modelType.equals(BedframeConstants.HANDHELD_IDENTIFIER)) {
                 Identifier textureId = Identifier.of(modelObject.get("textures").getAsJsonObject().get("layer0").getAsString());
 
                 String texturePath = "textures/" + textureId.getPath();
