@@ -177,7 +177,7 @@ public class BlockTranslator extends Translator {
                 // Obtain model data from polymers internal api
                 BlockState polymerBlockState = block.getPolymerBlockState(state, PacketContext.get());
                 BlockResourceCreator creator = PolymerBlockResourceUtilsAccessor.getCREATOR();
-                PolymerBlockModel[] polymerBlockModels = ((BlockResourceCreatorAccessor)(Object)creator).getModels().get(polymerBlockState);
+                PolymerBlockModel[] polymerBlockModels = ((BlockResourceCreatorAccessor) (Object) creator).getModels().get(polymerBlockState);
                 PolymerBlockModel modelEntry = polymerBlockModels[0]; // TODO: java selects one by weight, does bedrock support this?
 
                 // Rotation

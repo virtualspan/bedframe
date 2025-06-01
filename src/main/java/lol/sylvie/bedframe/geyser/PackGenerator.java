@@ -44,6 +44,9 @@ public class PackGenerator {
         }
     }
 
+    private static String getUuidString(String base) {
+        return UUID.nameUUIDFromBytes(base.getBytes()).toString();
+    }
 
     private static void writeManifestFile(Path directory) throws IOException {
         // TODO: Maybe generate this based on the mod list? Look into how aggressively Bedrock caches server resource packs
@@ -60,7 +63,7 @@ public class PackGenerator {
         JsonObject header = new JsonObject();
         header.addProperty("description", METADATA.getDescription());
         header.addProperty("name", METADATA.getId());
-        header.addProperty("uuid", (shouldRandomize ? UUID.randomUUID() : UUID.fromString(versionIdentifier)).toString());
+        header.addProperty("uuid", shouldRandomize ? UUID.randomUUID().toString() : getUuidString(versionIdentifier));
         header.add("version", version);
 
         JsonArray engineVersion = new JsonArray();
@@ -74,7 +77,7 @@ public class PackGenerator {
         JsonObject module = new JsonObject();
         module.addProperty("description", METADATA.getName() + " Resources");
         module.addProperty("type", "resources");
-        module.addProperty("uuid", (shouldRandomize ? UUID.randomUUID() : UUID.fromString(versionIdentifier + "-resources")).toString());
+        module.addProperty("uuid", shouldRandomize ? UUID.randomUUID().toString() : getUuidString(versionIdentifier + "-resources"));
         module.add("version", version);
 
         modules.add(module);
