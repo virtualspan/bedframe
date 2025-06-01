@@ -73,7 +73,7 @@ public class ItemTranslator extends Translator {
             ItemStack itemStack = item.getPolymerItemStack(realItem.getDefaultStack(), TooltipType.BASIC, PacketContext.get());
             Identifier model = itemStack.get(DataComponentTypes.ITEM_MODEL);
 
-            if (model == null || model.getNamespace().equals("minecraft")) return;
+            if (model == null || model.getNamespace().equals("minecraft")) return; // FIXME: some people (cough me cough) store their models in the minecraft namespace
 
             CustomItemOptions.Builder itemOptions = CustomItemOptions.builder();
 
@@ -123,9 +123,9 @@ public class ItemTranslator extends Translator {
             Identifier modelId = Identifier.of(itemDescription.get("model").getAsJsonObject().get("model").getAsString());
 
             JsonObject modelObject = ResourceHelper.readJsonResource(modelId.getNamespace(), "models/" + modelId.getPath() + ".json");
-            String modelType = modelObject.get("parent").getAsString();
+            Identifier modelType = Identifier.of(modelObject.get("parent").getAsString());
 
-            if (modelType.equals("minecraft:item/generated")) {
+            if (modelType.equals(BedframeConstants.GENERATED_IDENTIFIER)) {
                 Identifier textureId = Identifier.of(modelObject.get("textures").getAsJsonObject().get("layer0").getAsString());
 
                 String texturePath = "textures/" + textureId.getPath();
