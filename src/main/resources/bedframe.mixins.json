@@ -3,7 +3,9 @@
   "package": "lol.sylvie.bedframe.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "BlockResourceCreatorAccessor",
     "CustomItemRegistryPopulatorMixin",
+    "PolymerBlockResourceUtilsAccessor",
     "PolymerItemMixin",
     "PolymerItemUtilsMixin"
   ],

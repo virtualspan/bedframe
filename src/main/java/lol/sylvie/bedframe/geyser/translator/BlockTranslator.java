@@ -1,9 +1,13 @@
 package lol.sylvie.bedframe.geyser.translator;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import eu.pb4.polymer.blocks.api.BlockResourceCreator;
+import eu.pb4.polymer.blocks.api.PolymerBlockModel;
 import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
 import lol.sylvie.bedframe.geyser.Translator;
+import lol.sylvie.bedframe.mixin.BlockResourceCreatorAccessor;
+import lol.sylvie.bedframe.mixin.PolymerBlockResourceUtilsAccessor;
+import lol.sylvie.bedframe.util.JsonHelper;
 import lol.sylvie.bedframe.util.ResourceHelper;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -122,12 +126,6 @@ public class BlockTranslator extends Translator {
         }
     }
 
-    private String nonPrefixedBlockState(BlockState state, Identifier identifier) {
-        if (state.getProperties().isEmpty()) return "";
-        String stateString = BlockArgumentParser.stringifyBlockState(state);
-        return stateString.substring(identifier.toString().length() + 1, stateString.length() - 1);
-    }
-
     private BoxComponent voxelShapeToBoxComponent(VoxelShape shape) {
         if (shape.isEmpty()) {
             return BoxComponent.emptyBox();
@@ -171,55 +169,31 @@ public class BlockTranslator extends Translator {
             // Properties
             populateProperties(builder, realBlock.getStateManager().getProperties());
 
-            // Parsing models
-            HashMap<String, Pair<Integer, Integer>> rotationData = new HashMap<>();
-            HashMap<String, ModelData> models = new HashMap<>();
-
-            String blockstatesPath = "blockstates/" + identifier.getPath() + ".json";
-            try {
-                JsonObject variants = ResourceHelper.readJsonResource(identifier.getNamespace(), blockstatesPath)
-                        .getAsJsonObject("variants");
-                forEachKey(variants, (key, element) -> {
-                    JsonObject object = element.getAsJsonObject();
-
-                    JsonElement potentialX = object.get("x");
-                    int x = potentialX == null ? 0 : potentialX.getAsInt();
-
-                    JsonElement potentialY = object.get("y");
-                    int y = potentialY == null ? 0 : potentialY.getAsInt();
-
-                    String modelPath = object.get("model").getAsString();
-                    JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + Identifier.of(modelPath).getPath() + ".json");
-
-                    rotationData.put(key, new Pair<>(x, y));
-                    models.put(key, ModelData.fromJson(model));
-                });
-            } catch (NullPointerException e) {
-                // SHAME!
-                LOGGER.warn("Missing blockstates for {}", identifier);
-                JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/block/" + identifier.getPath() + ".json");
-                models.put("", ModelData.fromJson(model));
-            }
-
             // Block states/permutations
             List<CustomBlockPermutation> permutations = new ArrayList<>();
             for (BlockState state : realBlock.getStateManager().getStates()) {
-                String stateKey = nonPrefixedBlockState(state, identifier);
                 CustomBlockComponents.Builder stateComponentBuilder = CustomBlockComponents.builder();
 
+                // Obtain model data from polymers internal api
+                BlockState polymerBlockState = block.getPolymerBlockState(state, PacketContext.get());
+                BlockResourceCreator creator = PolymerBlockResourceUtilsAccessor.getCREATOR();
+                PolymerBlockModel[] polymerBlockModels = ((BlockResourceCreatorAccessor)(Object)creator).getModels().get(polymerBlockState);
+                PolymerBlockModel modelEntry = polymerBlockModels[0]; // TODO: java selects one by weight, does bedrock support this?
+
                 // Rotation
-                Pair<Integer, Integer> rotation = rotationData.getOrDefault(stateKey, new Pair<>(0, 0));
-                TransformationComponent rotationComponent = new TransformationComponent((360 - rotation.getLeft()) % 360, (360 - rotation.getRight()) % 360, 0);
+                TransformationComponent rotationComponent = new TransformationComponent((360 - modelEntry.x()) % 360, (360 - modelEntry.y()) % 360, 0);
                 stateComponentBuilder.transformation(rotationComponent);
 
                 // Geometry
                 // TODO: More geometry types
-                ModelData modelData = models.getOrDefault(stateKey, models.get(""));
-                if (modelData == null) {
+                JsonObject blockModel = ResourceHelper.readJsonResource(modelEntry.model().getNamespace(), "models/" + modelEntry.model().getPath() + ".json");
+                if (blockModel == null) {
                     LOGGER.warn("Couldn't load model for blockstate {}", state);
                     continue;
                 }
-                boolean cross = modelData.parent().equals("minecraft:block/cross");
+
+                ModelData modelData = ModelData.fromJson(blockModel);
+                boolean cross = modelData.parent().toString().equals("minecraft:block/cross");
                 String geometryIdentifier = cross ?  "minecraft:geometry.cross" : "minecraft:geometry.full_block";
                 String renderMethod = cross ? "alpha_test_single_sided" : "opaque";
 
@@ -227,14 +201,14 @@ public class BlockTranslator extends Translator {
                 stateComponentBuilder.geometry(geometryComponent);
 
                 // Textures
-                List<Pair<String, String>> faceMap = parentFaceMap.getOrDefault(modelData.parent().replaceFirst("minecraft:", ""), parentFaceMap.get("block/cube_all"));
+                List<Pair<String, String>> faceMap = parentFaceMap.getOrDefault(modelData.parent().getPath(), parentFaceMap.get("block/cube_all"));
                 for (Pair<String, String> face : faceMap) {
                     String javaFaceName = face.getLeft();
                     String bedrockFaceName = face.getRight();
                     if (!modelData.textures.containsKey(javaFaceName)) continue;
 
                     String textureName = modelData.textures.get(javaFaceName);
-                    String texturePath = "textures/" + textureName;
+                    String texturePath = "textures/" + Identifier.of(textureName).getPath();
                     String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
 
                     JsonObject thisTexture = new JsonObject();
@@ -313,16 +287,9 @@ public class BlockTranslator extends Translator {
         eventBus.subscribe(this, GeyserDefineCustomBlocksEvent.class, event -> handle(event, packRoot));
     }
 
-    record ModelData(String parent, Map<String, String> textures) {
+    record ModelData(Identifier parent, Map<String, String> textures) {
         public static ModelData fromJson(JsonObject object) {
-            JsonObject texturesObject = object.getAsJsonObject("textures");
-            HashMap<String, String> texturesMap = new HashMap<>();
-            texturesObject.entrySet().forEach(e -> {
-                String texture = e.getValue().getAsString();
-                if (texture.contains(":")) texture = Identifier.of(texture).getPath();
-                texturesMap.put(e.getKey(), texture);
-            });
-            return new ModelData(object.get("parent").getAsString(), texturesMap);
+            return JsonHelper.GSON.fromJson(object, ModelData.class);
         }
     }
 }
