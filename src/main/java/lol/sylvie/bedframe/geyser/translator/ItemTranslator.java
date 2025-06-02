@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
+import static lol.sylvie.bedframe.util.BedframeConstants.LOGGER;
 import static lol.sylvie.bedframe.util.PathHelper.createDirectoryOrThrow;
 
 public class ItemTranslator extends Translator {
@@ -47,7 +48,11 @@ public class ItemTranslator extends Translator {
 
     private void forEachItem(BiConsumer<Identifier, PolymerItem> function) {
         for (Map.Entry<Identifier, PolymerItem> entry : items.entrySet()) {
-            function.accept(entry.getKey(), entry.getValue());
+            try {
+                function.accept(entry.getKey(), entry.getValue());
+            } catch (RuntimeException e) {
+                LOGGER.error("Couldn't load item {}", entry.getKey(), e);
+            }
         }
     }
 

@@ -7,9 +7,20 @@ Translation layer that converts textured/custom server-side Polymer blocks and i
 ## Requirements
 
 - [Geyser-Fabric](https://geysermc.org/download)
-- [Polymer](https://modrinth.com/mod/polymer)
+- [Polymer (or a mod that uses it and its resource pack features)](https://modrinth.com/mod/polymer)
 
 You also probably want Polymer's Auto-Host feature, but Bedframe doesn't require it.
+
+## Compatibility
+
+- Works perfectly with [More Furnaces (Polymer)](https://modrinth.com/mod/morefurnaces)*
+
+-#
+
+## Limitations & Goals
+
+- Custom models (a.k.a non-full-block or cross-block) do not work
+- Entities are not touched
 
 ## License
 

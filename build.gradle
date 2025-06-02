@@ -66,8 +66,8 @@ dependencies {
 
 	// Polymer
 	modImplementation "eu.pb4:polymer-core:${project.polymer_version}"
-	modImplementation "eu.pb4:polymer-blocks:${project.polymer_blocks_version}"
-	modImplementation "eu.pb4:polymer-resource-pack:${project.polymer_resource_pack_version}"
+	modImplementation "eu.pb4:polymer-blocks:${project.polymer_version}"
+	modImplementation "eu.pb4:polymer-resource-pack:${project.polymer_version}"
 
 	// Server-Translations
 	modImplementation "xyz.nucleoid:server-translations-api:${project.server_translations_version}"

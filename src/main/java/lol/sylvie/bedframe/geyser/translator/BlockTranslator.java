@@ -193,7 +193,12 @@ public class BlockTranslator extends Translator {
                 }
 
                 ModelData modelData = ModelData.fromJson(blockModel);
-                boolean cross = modelData.parent().toString().equals("minecraft:block/cross");
+                Identifier modelParent = modelData.parent();
+                if (modelParent == null) {
+                    LOGGER.error("Model for blockstate {} has no parent, defaulting to full block", state);
+                    modelParent = Identifier.of("minecraft", "block/cube_all");
+                }
+                boolean cross = modelParent.toString().equals("minecraft:block/cross");
                 String geometryIdentifier = cross ?  "minecraft:geometry.cross" : "minecraft:geometry.full_block";
                 String renderMethod = cross ? "alpha_test_single_sided" : "opaque";
 
@@ -201,7 +206,7 @@ public class BlockTranslator extends Translator {
                 stateComponentBuilder.geometry(geometryComponent);
 
                 // Textures
-                List<Pair<String, String>> faceMap = parentFaceMap.getOrDefault(modelData.parent().getPath(), parentFaceMap.get("block/cube_all"));
+                List<Pair<String, String>> faceMap = parentFaceMap.getOrDefault(modelParent.getPath(), parentFaceMap.get("block/cube_all"));
                 for (Pair<String, String> face : faceMap) {
                     String javaFaceName = face.getLeft();
                     String bedrockFaceName = face.getRight();
