@@ -208,7 +208,8 @@ public class BlockTranslator extends Translator {
                     if (!modelData.textures.containsKey(javaFaceName)) continue;
 
                     String textureName = modelData.textures.get(javaFaceName);
-                    String texturePath = "textures/" + Identifier.of(textureName).getPath();
+                    Identifier textureIdentifier = Identifier.of(textureName);
+                    String texturePath = "textures/" + textureIdentifier.getPath();
                     String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
 
                     JsonObject thisTexture = new JsonObject();
@@ -222,7 +223,7 @@ public class BlockTranslator extends Translator {
                             .ambientOcclusion(true)
                             .build());
 
-                    ResourceHelper.copyResource(identifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
+                    ResourceHelper.copyResource(textureIdentifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
                 }
 
                 stateComponentBuilder.collisionBox(voxelShapeToBoxComponent(realBlock.getDefaultState().getCollisionShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)));
