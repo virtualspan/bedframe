@@ -5,7 +5,8 @@
 	"name": "Bedframe",
 	"description": "Translation layer that converts textured/custom server-side Polymer blocks and items to native Bedrock representations.",
 	"authors": [
-		"sylvxa"
+		"sylvxa",
+		"tomalbrc"
 	],
 	"contact": {
 		"homepage": "https://sylvie.lol/",
