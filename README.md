@@ -21,6 +21,7 @@ You also probably want Polymer's Auto-Host feature, but Bedframe doesn't require
 
 - Custom models (a.k.a non-full-block or cross-block) do not work
 - Entities are not touched
+- [Filament](https://github.com/tomalbrc/filament/tree/main) support (and/or [Toms Server Additions](https://modrinth.com/mods?q=Tom%27s+Server+Additions)) is a bit iffy
 
 ## License
 

@@ -24,8 +24,11 @@ public class ResourceHelper {
 
     public static void copyResource(String namespace, String path, Path destination) {
         try {
-            if (Files.notExists(destination))
+            if (Files.notExists(destination)) {
+                destination.toFile().getParentFile().mkdirs(); // Filament, i'm lazy :P
                 Files.copy(getResource(namespace, path), destination);
+            }
+
         } catch (IOException | NullPointerException e) {
             throw new RuntimeException("Couldn't copy resource " + Identifier.of(namespace, path), e);
         }

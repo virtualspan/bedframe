@@ -113,37 +113,45 @@ public class ItemTranslator extends Translator {
             itemBuilder.javaId(Registries.ITEM.getRawIdOrThrow(realItem));
 
             if (realItem instanceof BlockItem blockItem) {
-                String blockId = Registries.BLOCK.getEntry(blockItem.getBlock()).getIdAsString();
                 itemBuilder.icon(""); // see CustomItemRegistryPopulatorMixin
-                itemBuilder.block(blockId);
+                itemBuilder.block(Registries.BLOCK.getEntry(blockItem.getBlock()).getIdAsString());
                 //itemBuilder.translationString("tile." + blockId + ".name");
-            } else {
-                // Item names
-                String bedrockKey = "item." + identifier + ".name";
-                addTranslationKey(bedrockKey, realItem.getTranslationKey());
-                //itemBuilder.translationString(bedrockKey);
             }
 
-            JsonObject itemDescription = ResourceHelper.readJsonResource(model.getNamespace(), "items/" + model.getPath() + ".json");
-            Identifier modelId = Identifier.of(itemDescription.get("model").getAsJsonObject().get("model").getAsString());
+            // Item names
+            String bedrockKey = "item." + identifier + ".name";
+            addTranslationKey(bedrockKey, realItem.getTranslationKey());
+            //itemBuilder.translationString(bedrockKey);
+            try {
+                JsonObject itemDescription = ResourceHelper.readJsonResource(model.getNamespace(), "items/" + model.getPath() + ".json");
+                Identifier modelId = Identifier.of(itemDescription.get("model").getAsJsonObject().get("model").getAsString());
 
-            JsonObject modelObject = ResourceHelper.readJsonResource(modelId.getNamespace(), "models/" + modelId.getPath() + ".json");
-            Identifier modelType = Identifier.of(modelObject.get("parent").getAsString());
+                JsonObject modelObject = ResourceHelper.readJsonResource(modelId.getNamespace(), "models/" + modelId.getPath() + ".json");
+                Identifier modelType = Identifier.of(modelObject.get("parent").getAsString());
 
-            if (modelType.equals(BedframeConstants.GENERATED_IDENTIFIER) || modelType.equals(BedframeConstants.HANDHELD_IDENTIFIER)) {
-                Identifier textureId = Identifier.of(modelObject.get("textures").getAsJsonObject().get("layer0").getAsString());
+                boolean handheld = modelType.equals(BedframeConstants.HANDHELD_IDENTIFIER);
 
-                String texturePath = "textures/" + textureId.getPath();
-                String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
-                String textureName = identifier.toString();
+                // Tools
+                if (handheld)
+                    itemBuilder.displayHandheld(true);
 
-                JsonObject textureObject = new JsonObject();
-                textureObject.addProperty("textures", bedrockPath);
+                if (modelType.equals(BedframeConstants.GENERATED_IDENTIFIER) || handheld) {
+                    Identifier textureId = Identifier.of(modelObject.get("textures").getAsJsonObject().get("layer0").getAsString());
 
-                textureDataObject.add(textureName, textureObject);
-                ResourceHelper.copyResource(textureId.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
+                    String texturePath = "textures/" + textureId.getPath();
+                    String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
+                    String textureName = identifier.toString();
 
-                itemBuilder.icon(textureName);
+                    JsonObject textureObject = new JsonObject();
+                    textureObject.addProperty("textures", bedrockPath);
+
+                    textureDataObject.add(textureName, textureObject);
+                    ResourceHelper.copyResource(textureId.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
+
+                    itemBuilder.icon(textureName);
+                }
+            } catch (NullPointerException e) {
+                LOGGER.warn("Item {} has no model", identifier);
             }
 
             registeredItems.add(realItem);

@@ -48,9 +48,11 @@ public class BlockTranslator extends Translator {
     // Maps parent models to a map containing the translations between Java sides and Bedrock sides
     private static final Map<String, List<Pair<String, String>>> parentFaceMap = Map.of(
             "block/cube_all", List.of(
+                    new Pair<>("particle", "*"),
                     new Pair<>("all", "*")
             ),
             "block/cross", List.of(
+                    new Pair<>("particle", "*"),
                     new Pair<>("cross", "*")
             ),
             "block/cube_bottom_top", List.of(
