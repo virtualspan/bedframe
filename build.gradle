@@ -25,6 +25,11 @@ repositories {
 	maven {
 		url = uri("https://repo.opencollab.dev/main/")
 	}
+
+	// Serves "creative" library, needed for pack converter
+	maven {
+		url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+	}
 }
 
 sourceSets {
@@ -75,6 +80,8 @@ dependencies {
 	// Geyser
 	compileOnly("org.geysermc.geyser:api:${project.geyser_version}")
 	compileOnly("org.geysermc.geyser:core:${project.geyser_version}")
+
+	api("org.geysermc.pack:converter:${project.pack_converter_version}")
 }
 
 processResources {
