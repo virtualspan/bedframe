@@ -1,18 +1,23 @@
 package lol.sylvie.bedframe.geyser.translator;
 
 import com.google.gson.JsonObject;
+import com.mojang.logging.LogListeners;
 import eu.pb4.polymer.blocks.api.BlockResourceCreator;
 import eu.pb4.polymer.blocks.api.PolymerBlockModel;
 import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
+import lol.sylvie.bedframe.geyser.PackGenerator;
 import lol.sylvie.bedframe.geyser.Translator;
+import lol.sylvie.bedframe.geyser.model.JavaGeometryConverter;
 import lol.sylvie.bedframe.mixin.BlockResourceCreatorAccessor;
 import lol.sylvie.bedframe.mixin.PolymerBlockResourceUtilsAccessor;
 import lol.sylvie.bedframe.util.BedframeConstants;
 import lol.sylvie.bedframe.util.JsonHelper;
 import lol.sylvie.bedframe.util.ResourceHelper;
+import net.fabricmc.loader.api.ModContainer;
 import net.kyori.adventure.key.Key;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.DoorBlock;
 import net.minecraft.command.argument.BlockArgumentParser;
 import net.minecraft.registry.Registries;
 import net.minecraft.state.property.BooleanProperty;
@@ -35,7 +40,13 @@ import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomBlocksEvent;
 import org.geysermc.geyser.api.util.CreativeCategory;
+import org.geysermc.pack.bedrock.resource.models.entity.ModelEntity;
+import org.geysermc.pack.converter.converter.model.ModelStitcher;
+import org.geysermc.pack.converter.util.DefaultLogListener;
+import org.geysermc.pack.converter.util.LogListener;
 import org.intellij.lang.annotations.Subst;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 import team.unnamed.creative.model.Model;
 import team.unnamed.creative.model.ModelTexture;
@@ -49,6 +60,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
+import static lol.sylvie.bedframe.util.BedframeConstants.GSON;
 import static lol.sylvie.bedframe.util.BedframeConstants.LOGGER;
 import static lol.sylvie.bedframe.util.PathHelper.createDirectoryOrThrow;
 
@@ -147,16 +159,28 @@ public class BlockTranslator extends Translator {
         float sizeY = (float) box.getLengthY() * 16;
         float sizeZ = (float) box.getLengthZ() * 16;
 
-        Vec3d origin = box.getMinPos();
-        Vector3f originNormalized = new Vec3d(origin.getX(), origin.getY(), origin.getZ()).toVector3f();
+        Vector3f origin = box.getMinPos().toVector3f();
+        return new BoxComponent(origin.x() - 8, origin.y(), origin.z() - 8, sizeX, sizeY, sizeZ);
+    }
 
-        return new BoxComponent(originNormalized.x() - 8, originNormalized.y(), originNormalized.z() - 8, sizeX, sizeY, sizeZ);
+    private Model resolveModel(Identifier identifier) {
+        // This is unstable (https://unnamed.team/docs/creative/latest/serialization/minecraft)
+        try {
+            JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + identifier.getPath() + ".json");
+            return ModelSerializer.INSTANCE.deserializeFromJson(model, Key.key(identifier.toString()));
+        } catch (RuntimeException e) {
+            LOGGER.warn("Couldn't resolve model {}", identifier);
+            return null;
+        }
     }
 
     // Referenced https://github.com/GeyserMC/Hydraulic/blob/master/shared/src/main/java/org/geysermc/hydraulic/block/BlockPackModule.java#L54
     public void handle(GeyserDefineCustomBlocksEvent event, Path packRoot) {
         Path textureDir = createDirectoryOrThrow(packRoot.resolve("textures"));
         createDirectoryOrThrow(textureDir.resolve("blocks"));
+
+        Path modelsDir = createDirectoryOrThrow(packRoot.resolve("models"));
+        Path blockModelsDir = createDirectoryOrThrow(modelsDir.resolve("blocks"));
 
         JsonObject terrainTextureObject = new JsonObject();
         terrainTextureObject.addProperty("resource_pack_name", "Bedframe");
@@ -190,43 +214,43 @@ public class BlockTranslator extends Translator {
                 PolymerBlockModel[] polymerBlockModels = ((BlockResourceCreatorAccessor) (Object) creator).getModels().get(polymerBlockState);
                 PolymerBlockModel modelEntry = polymerBlockModels[0]; // TODO: java selects one by weight, does bedrock support this?
 
+                if (modelEntry == null) {
+                    LOGGER.warn("No model specified for blockstate {}", state);
+                    continue;
+                }
+
                 // Rotation
                 TransformationComponent rotationComponent = new TransformationComponent((360 - modelEntry.x()) % 360, (360 - modelEntry.y()) % 360, 0);
                 stateComponentBuilder.transformation(rotationComponent);
 
                 // Geometry
-                // TODO: More geometry types
-                Identifier blockModelId = modelEntry.model(); // i hate the java compiler
-                Key key = Key.key(blockModelId.toString());
-                JsonObject blockModel = ResourceHelper.readJsonResource(blockModelId.getNamespace(), "models/" + blockModelId.getPath() + ".json");
+                String renderMethod = state.isOpaque() ? "opaque" : "blend"; // TODO: Hydraulic also faces this problem; Figure out when to use alpha_test
+                Identifier blockModelId = modelEntry.model();
+                Model blockModel = resolveModel(blockModelId);
                 if (blockModel == null) {
                     LOGGER.warn("Couldn't load model for blockstate {}", state);
                     continue;
                 }
 
-                // This is unstable (https://unnamed.team/docs/creative/latest/serialization/minecraft)
-                Model model = ModelSerializer.INSTANCE.deserializeFromJson(blockModel, Key.key(blockModelId.toString()));
-
-                Key modelParent = model.parent();
-                String renderMethod = "opaque";
-                if (modelParent == null) {
-                    // TODO: MODEL CONVERSION
-                } else {
-                    // TODO: actually handle non-vanilla parents
-                    boolean cross = modelParent.toString().equals("minecraft:block/cross");
+                Key modelParentKey = blockModel.parent();
+                if (modelParentKey != null) {
+                    // Vanilla parent
+                    boolean cross = modelParentKey.toString().equals("minecraft:block/cross");
                     String geometryIdentifier = cross ?  "minecraft:geometry.cross" : "minecraft:geometry.full_block";
                     if (cross) renderMethod = "alpha_test_single_sided";
 
                     GeometryComponent geometryComponent = GeometryComponent.builder().identifier(geometryIdentifier).build();
                     stateComponentBuilder.geometry(geometryComponent);
-                }
 
+                    // Textures
+                    ModelTextures textures = blockModel.textures();
+                    Map<String, ModelTexture> textureMap = textures.variables();
+                    List<Pair<String, String>> faceMap = parentFaceMap.get(modelParentKey.value());
+                    if (faceMap == null) {
+                        LOGGER.error("No texture map found for parent {} of blockstate {}", modelParentKey, state);
+                        continue;
+                    }
 
-                // Textures
-                ModelTextures textures = model.textures();
-                Map<String, ModelTexture> textureMap = textures.variables();
-                List<Pair<String, String>> faceMap = parentFaceMap.get(modelParent.value());
-                if (faceMap != null) {
                     for (Pair<String, String> face : faceMap) {
                         String javaFaceName = face.getLeft();
                         String bedrockFaceName = face.getRight();
@@ -246,18 +270,54 @@ public class BlockTranslator extends Translator {
                                 .renderMethod(renderMethod)
                                 .texture(textureName)
                                 .faceDimming(true)
-                                .ambientOcclusion(true)
+                                .ambientOcclusion(blockModel.ambientOcclusion())
                                 .build());
 
                         ResourceHelper.copyResource(textureIdentifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
                     }
                 } else {
-                    LOGGER.error("no parent found; fixing as we speak lmfao");
-                    continue;
+                    // Custom model
+                    ModelStitcher.Provider provider = key -> resolveModel(Identifier.of(key.asString()));
+                    blockModel = new ModelStitcher(provider, blockModel).stitch(); // This resolves parent models (?)
+
+                    Pair<String, ModelEntity> nameAndModel = JavaGeometryConverter.convert(blockModel);
+                    if (nameAndModel == null) {
+                        LOGGER.error("Couldn't convert model for blockstate {}", state);
+                        continue;
+                    }
+                    String geometryId = nameAndModel.getLeft();
+                    writeJsonToFile(nameAndModel.getRight(), blockModelsDir.resolve(geometryId + ".geo.json").toFile());
+
+                    for (Map.Entry<String, ModelTexture> entry : blockModel.textures().variables().entrySet()) {
+                        String key = entry.getKey();
+                        ModelTexture texture = entry.getValue();
+                        String textureName = texture.key().asString();
+                        Identifier textureIdentifier = Identifier.of(textureName);
+                        String texturePath = "textures/" + textureIdentifier.getPath();
+                        String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
+
+                        JsonObject thisTexture = new JsonObject();
+                        thisTexture.addProperty("textures", bedrockPath);
+                        textureDataObject.add(textureName, thisTexture);
+
+                        System.out.println(key + " -> " + textureName + " -> "+ bedrockPath);
+                        stateComponentBuilder.materialInstance(key, MaterialInstance.builder()
+                                .renderMethod(renderMethod)
+                                .texture(textureName)
+                                .faceDimming(true)
+                                .ambientOcclusion(blockModel.ambientOcclusion())
+                                .build());
+
+                        ResourceHelper.copyResource(textureIdentifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
+                    }
+
+                    GeometryComponent geometryComponent = GeometryComponent.builder().identifier(geometryId).build();
+                    stateComponentBuilder.geometry(geometryComponent);
                 }
 
-
-                stateComponentBuilder.collisionBox(voxelShapeToBoxComponent(realBlock.getDefaultState().getCollisionShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)));
+                stateComponentBuilder.collisionBox(voxelShapeToBoxComponent(state.getCollisionShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)));
+                stateComponentBuilder.selectionBox(voxelShapeToBoxComponent(state.getOutlineShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)));
+                stateComponentBuilder.lightEmission(state.getLuminance());
 
                 CustomBlockComponents stateComponents = stateComponentBuilder.build();
                 if (state.getProperties().isEmpty()) {

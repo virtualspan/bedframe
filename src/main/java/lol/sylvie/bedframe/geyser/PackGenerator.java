@@ -9,6 +9,9 @@ import lol.sylvie.bedframe.util.ResourceHelper;
 import lol.sylvie.bedframe.util.ZipHelper;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.Version;
+import org.geysermc.pack.converter.util.NioDirectoryFileTreeReader;
+import team.unnamed.creative.ResourcePack;
+import team.unnamed.creative.serialize.minecraft.MinecraftResourcePackReader;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -16,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Function;
 
 import static lol.sylvie.bedframe.util.BedframeConstants.GSON;
 import static lol.sylvie.bedframe.util.BedframeConstants.METADATA;
@@ -24,6 +28,8 @@ import static lol.sylvie.bedframe.util.BedframeConstants.METADATA;
  * Compiles the output of the {@link Translator} classes into a Bedrock resource pack
  */
 public class PackGenerator {
+    private static final HashMap<String, ResourcePack> RESOURCE_PACK_MAP = new HashMap<>();
+
     private static JsonArray getVersionArray() {
         // TODO: A regex would be more inclusive
         Version version = BedframeConstants.METADATA.getVersion();

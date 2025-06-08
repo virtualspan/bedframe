@@ -58,7 +58,7 @@ public abstract class Translator implements EventRegistrar {
         } catch (IOException e) { throw new RuntimeException(e); }
     }
 
-    protected static void writeJsonToFile(JsonObject object, File file) {
+    protected static void writeJsonToFile(Object object, File file) {
         try (FileWriter writer = new FileWriter(file)) {
             GSON.toJson(object, writer);
         } catch (IOException e) { throw new RuntimeException(e); }
