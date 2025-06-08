@@ -232,6 +232,7 @@ public class BlockTranslator extends Translator {
                     continue;
                 }
 
+                HashMap<String, ModelTexture> materials = new HashMap<>();
                 Key modelParentKey = blockModel.parent();
                 if (modelParentKey != null) {
                     // Vanilla parent
@@ -251,29 +252,13 @@ public class BlockTranslator extends Translator {
                         continue;
                     }
 
+
                     for (Pair<String, String> face : faceMap) {
                         String javaFaceName = face.getLeft();
                         String bedrockFaceName = face.getRight();
                         if (!textureMap.containsKey(javaFaceName)) continue;
 
-                        ModelTexture textureObject = textureMap.get(javaFaceName);
-                        String textureName = textureObject.key().asString();
-                        Identifier textureIdentifier = Identifier.of(textureName);
-                        String texturePath = "textures/" + textureIdentifier.getPath();
-                        String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
-
-                        JsonObject thisTexture = new JsonObject();
-                        thisTexture.addProperty("textures", bedrockPath);
-                        textureDataObject.add(textureName, thisTexture);
-
-                        stateComponentBuilder.materialInstance(bedrockFaceName, MaterialInstance.builder()
-                                .renderMethod(renderMethod)
-                                .texture(textureName)
-                                .faceDimming(true)
-                                .ambientOcclusion(blockModel.ambientOcclusion())
-                                .build());
-
-                        ResourceHelper.copyResource(textureIdentifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
+                        materials.put(bedrockFaceName, textureMap.get(javaFaceName));
                     }
                 } else {
                     // Custom model
@@ -291,30 +276,37 @@ public class BlockTranslator extends Translator {
                     for (Map.Entry<String, ModelTexture> entry : blockModel.textures().variables().entrySet()) {
                         String key = entry.getKey();
                         ModelTexture texture = entry.getValue();
-                        String textureName = texture.key().asString();
-                        Identifier textureIdentifier = Identifier.of(textureName);
-                        String texturePath = "textures/" + textureIdentifier.getPath();
-                        String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
-
-                        JsonObject thisTexture = new JsonObject();
-                        thisTexture.addProperty("textures", bedrockPath);
-                        textureDataObject.add(textureName, thisTexture);
-
-                        System.out.println(key + " -> " + textureName + " -> "+ bedrockPath);
-                        stateComponentBuilder.materialInstance(key, MaterialInstance.builder()
-                                .renderMethod(renderMethod)
-                                .texture(textureName)
-                                .faceDimming(true)
-                                .ambientOcclusion(blockModel.ambientOcclusion())
-                                .build());
-
-                        ResourceHelper.copyResource(textureIdentifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
+                        materials.put(key, texture);
                     }
 
                     GeometryComponent geometryComponent = GeometryComponent.builder().identifier(geometryId).build();
                     stateComponentBuilder.geometry(geometryComponent);
                 }
 
+                // Textures/materials
+                for (Map.Entry<String, ModelTexture> entry : materials.entrySet()) {
+                    ModelTexture texture = entry.getValue();
+                    String textureName = texture.key().asString();
+                    Identifier textureIdentifier = Identifier.of(textureName);
+
+                    String texturePath = "textures/" + textureIdentifier.getPath();
+                    String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
+
+                    JsonObject thisTexture = new JsonObject();
+                    thisTexture.addProperty("textures", bedrockPath);
+                    textureDataObject.add(textureName, thisTexture);
+
+                    stateComponentBuilder.materialInstance(entry.getKey(), MaterialInstance.builder()
+                            .renderMethod(renderMethod)
+                            .texture(textureName)
+                            .faceDimming(true)
+                            .ambientOcclusion(blockModel.ambientOcclusion())
+                            .build());
+
+                    ResourceHelper.copyResource(textureIdentifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
+                }
+
+                // Collision
                 stateComponentBuilder.collisionBox(voxelShapeToBoxComponent(state.getCollisionShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)));
                 stateComponentBuilder.selectionBox(voxelShapeToBoxComponent(state.getOutlineShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)));
                 stateComponentBuilder.lightEmission(state.getLuminance());

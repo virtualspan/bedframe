@@ -57,6 +57,7 @@ public class ModItems {
             itemGroup.add(ModBlocks.EXAMPLE_BLOCK.asItem());
             itemGroup.add(ModBlocks.EXAMPLE_LOG.asItem());
             itemGroup.add(ModBlocks.EXAMPLE_FLOWER.asItem());
+            itemGroup.add(ModBlocks.EXAMPLE_FLOWER_POT.asItem());
         });
     }
 }

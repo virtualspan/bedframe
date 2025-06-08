@@ -19,11 +19,11 @@ import team.unnamed.creative.model.Model;
 import team.unnamed.creative.texture.TextureUV;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import static lol.sylvie.bedframe.util.BedframeConstants.LOGGER;
-
 
 /*
  * Concepts here were inspired by:
@@ -39,41 +39,47 @@ public class JavaGeometryConverter {
         return new float[] { java[0] - 8.0f, java[1], java[2] - 8.0f };
     }
 
-    private static void applyFaceUv(Uv uv, CubeFace cubeFace, float[] uvValue, String texture) {
+    private static void applyFaceUv(Uv uv, CubeFace cubeFace, float[] uvValue, float[] uvSize, String texture) {
         switch (cubeFace) {
             case UP -> {
                 Up up = new Up();
                 up.uv(uvValue);
+                up.uvSize(uvSize);
                 up.materialInstance(texture);
                 uv.up(up);
             }
             case DOWN -> {
                 Down down = new Down();
                 down.uv(uvValue);
+                down.uvSize(uvSize);
                 down.materialInstance(texture);
                 uv.down(down);
             }
             case NORTH -> {
                 North north = new North();
                 north.uv(uvValue);
+                north.uvSize(uvSize);
                 north.materialInstance(texture);
                 uv.north(north);
             }
             case SOUTH -> {
                 South south = new South();
                 south.uv(uvValue);
+                south.uvSize(uvSize);
                 south.materialInstance(texture);
                 uv.south(south);
             }
             case EAST -> {
                 East east = new East();
                 east.uv(uvValue);
+                east.uvSize(uvSize);
                 east.materialInstance(texture);
                 uv.east(east);
             }
             case WEST -> {
                 West west = new West();
                 west.uv(uvValue);
+                west.uvSize(uvSize);
                 west.materialInstance(texture);
                 uv.west(west);
             }
@@ -132,22 +138,31 @@ public class JavaGeometryConverter {
             Uv uv = new Uv();
             if (!element.faces().isEmpty()) {
                 for (Map.Entry<CubeFace, ElementFace> faceEntry : element.faces().entrySet()) {
+                    CubeFace direction = faceEntry.getKey();
                     ElementFace face = faceEntry.getValue();
-                    TextureUV textureUV = face.uv0();
-                    if (textureUV == null) textureUV = TextureUV.uv(0, 0, 16, 16);
-                    float[] uvValue = new float[] { textureUV.from().x(), textureUV.from().y() };
-                    // TODO: see if uv size is necessary
 
-                    applyFaceUv(uv, faceEntry.getKey(), uvValue, face.texture().replace("#", ""));
+                    TextureUV textureUV = face.uv0();
+                    if (textureUV == null)
+                        textureUV = TextureUV.uv(0, 0, 1, 1);
+                    else textureUV =  TextureUV.uv(textureUV.from().multiply(16f), textureUV.to().multiply(16f));
+
+                    float[] uvValue;
+                    float[] uvSize;
+                    if (direction.axis() == Axis3D.Y) {
+                        uvValue = new float[] { textureUV.to().x(), textureUV.to().y() };
+                        uvSize = new float[] { (textureUV.from().x() - uvValue[0]), (textureUV.from().y() - uvValue[1]) };
+                    } else {
+                        uvValue = new float[] { textureUV.from().x(), textureUV.from().y() };
+                        uvSize = new float[] { (textureUV.to().x() - uvValue[0]), (textureUV.to().y() - uvValue[1]) };
+                    }
+
+                    applyFaceUv(uv, direction, uvValue, uvSize, face.texture().replace("#", ""));
                 }
             } else {
-                float[] fallbackValue = new float[] { 0, 0 };
                 for (CubeFace face : CubeFace.values()) {
-                    applyFaceUv(uv, face, fallbackValue, face.name());
+                    applyFaceUv(uv, face, new float[] { 0, 0 }, new float[] { 16, 16 }, face.name());
                 }
             }
-
-            // Textures
 
             cube.uv(uv);
             bone.cubes(List.of(cube));
