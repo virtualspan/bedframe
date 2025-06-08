@@ -7,8 +7,10 @@ import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
 import lol.sylvie.bedframe.geyser.Translator;
 import lol.sylvie.bedframe.mixin.BlockResourceCreatorAccessor;
 import lol.sylvie.bedframe.mixin.PolymerBlockResourceUtilsAccessor;
+import lol.sylvie.bedframe.util.BedframeConstants;
 import lol.sylvie.bedframe.util.JsonHelper;
 import lol.sylvie.bedframe.util.ResourceHelper;
+import net.kyori.adventure.key.Key;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.command.argument.BlockArgumentParser;
@@ -33,7 +35,13 @@ import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomBlocksEvent;
 import org.geysermc.geyser.api.util.CreativeCategory;
+import org.intellij.lang.annotations.Subst;
 import org.joml.Vector3f;
+import team.unnamed.creative.model.Model;
+import team.unnamed.creative.model.ModelTexture;
+import team.unnamed.creative.model.ModelTextures;
+import team.unnamed.creative.serialize.minecraft.font.FontSerializer;
+import team.unnamed.creative.serialize.minecraft.model.ModelSerializer;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.nio.file.Path;
@@ -188,50 +196,66 @@ public class BlockTranslator extends Translator {
 
                 // Geometry
                 // TODO: More geometry types
-                JsonObject blockModel = ResourceHelper.readJsonResource(modelEntry.model().getNamespace(), "models/" + modelEntry.model().getPath() + ".json");
+                Identifier blockModelId = modelEntry.model(); // i hate the java compiler
+                Key key = Key.key(blockModelId.toString());
+                JsonObject blockModel = ResourceHelper.readJsonResource(blockModelId.getNamespace(), "models/" + blockModelId.getPath() + ".json");
                 if (blockModel == null) {
                     LOGGER.warn("Couldn't load model for blockstate {}", state);
                     continue;
                 }
 
-                ModelData modelData = ModelData.fromJson(blockModel);
-                Identifier modelParent = modelData.parent();
-                if (modelParent == null) {
-                    LOGGER.error("Model for blockstate {} has no parent, defaulting to full block", state);
-                    modelParent = Identifier.of("minecraft", "block/cube_all");
-                }
-                boolean cross = modelParent.toString().equals("minecraft:block/cross");
-                String geometryIdentifier = cross ?  "minecraft:geometry.cross" : "minecraft:geometry.full_block";
-                String renderMethod = cross ? "alpha_test_single_sided" : "opaque";
+                // This is unstable (https://unnamed.team/docs/creative/latest/serialization/minecraft)
+                Model model = ModelSerializer.INSTANCE.deserializeFromJson(blockModel, Key.key(blockModelId.toString()));
 
-                GeometryComponent geometryComponent = GeometryComponent.builder().identifier(geometryIdentifier).build();
-                stateComponentBuilder.geometry(geometryComponent);
+                Key modelParent = model.parent();
+                String renderMethod = "opaque";
+                if (modelParent == null) {
+                    // TODO: MODEL CONVERSION
+                } else {
+                    // TODO: actually handle non-vanilla parents
+                    boolean cross = modelParent.toString().equals("minecraft:block/cross");
+                    String geometryIdentifier = cross ?  "minecraft:geometry.cross" : "minecraft:geometry.full_block";
+                    if (cross) renderMethod = "alpha_test_single_sided";
+
+                    GeometryComponent geometryComponent = GeometryComponent.builder().identifier(geometryIdentifier).build();
+                    stateComponentBuilder.geometry(geometryComponent);
+                }
+
 
                 // Textures
-                List<Pair<String, String>> faceMap = parentFaceMap.getOrDefault(modelParent.getPath(), parentFaceMap.get("block/cube_all"));
-                for (Pair<String, String> face : faceMap) {
-                    String javaFaceName = face.getLeft();
-                    String bedrockFaceName = face.getRight();
-                    if (!modelData.textures.containsKey(javaFaceName)) continue;
+                ModelTextures textures = model.textures();
+                Map<String, ModelTexture> textureMap = textures.variables();
+                List<Pair<String, String>> faceMap = parentFaceMap.get(modelParent.value());
+                if (faceMap != null) {
+                    for (Pair<String, String> face : faceMap) {
+                        String javaFaceName = face.getLeft();
+                        String bedrockFaceName = face.getRight();
+                        if (!textureMap.containsKey(javaFaceName)) continue;
 
-                    String textureName = modelData.textures.get(javaFaceName);
-                    Identifier textureIdentifier = Identifier.of(textureName);
-                    String texturePath = "textures/" + textureIdentifier.getPath();
-                    String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
+                        ModelTexture textureObject = textureMap.get(javaFaceName);
+                        String textureName = textureObject.key().asString();
+                        Identifier textureIdentifier = Identifier.of(textureName);
+                        String texturePath = "textures/" + textureIdentifier.getPath();
+                        String bedrockPath = ResourceHelper.javaToBedrockTexture(texturePath);
 
-                    JsonObject thisTexture = new JsonObject();
-                    thisTexture.addProperty("textures", bedrockPath);
-                    textureDataObject.add(textureName, thisTexture);
+                        JsonObject thisTexture = new JsonObject();
+                        thisTexture.addProperty("textures", bedrockPath);
+                        textureDataObject.add(textureName, thisTexture);
 
-                    stateComponentBuilder.materialInstance(bedrockFaceName, MaterialInstance.builder()
-                            .renderMethod(renderMethod)
-                            .texture(textureName)
-                            .faceDimming(true)
-                            .ambientOcclusion(true)
-                            .build());
+                        stateComponentBuilder.materialInstance(bedrockFaceName, MaterialInstance.builder()
+                                .renderMethod(renderMethod)
+                                .texture(textureName)
+                                .faceDimming(true)
+                                .ambientOcclusion(true)
+                                .build());
 
-                    ResourceHelper.copyResource(textureIdentifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
+                        ResourceHelper.copyResource(textureIdentifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
+                    }
+                } else {
+                    LOGGER.error("no parent found; fixing as we speak lmfao");
+                    continue;
                 }
+
 
                 stateComponentBuilder.collisionBox(voxelShapeToBoxComponent(realBlock.getDefaultState().getCollisionShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)));
 
@@ -293,11 +317,5 @@ public class BlockTranslator extends Translator {
     @Override
     public void register(EventBus<EventRegistrar> eventBus, Path packRoot) {
         eventBus.subscribe(this, GeyserDefineCustomBlocksEvent.class, event -> handle(event, packRoot));
-    }
-
-    record ModelData(Identifier parent, Map<String, String> textures) {
-        public static ModelData fromJson(JsonObject object) {
-            return JsonHelper.GSON.fromJson(object, ModelData.class);
-        }
     }
 }
