@@ -1,23 +1,17 @@
 package lol.sylvie.bedframe.geyser.translator;
 
 import com.google.gson.JsonObject;
-import com.mojang.logging.LogListeners;
 import eu.pb4.polymer.blocks.api.BlockResourceCreator;
 import eu.pb4.polymer.blocks.api.PolymerBlockModel;
 import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
-import lol.sylvie.bedframe.geyser.PackGenerator;
 import lol.sylvie.bedframe.geyser.Translator;
 import lol.sylvie.bedframe.geyser.model.JavaGeometryConverter;
 import lol.sylvie.bedframe.mixin.BlockResourceCreatorAccessor;
 import lol.sylvie.bedframe.mixin.PolymerBlockResourceUtilsAccessor;
-import lol.sylvie.bedframe.util.BedframeConstants;
-import lol.sylvie.bedframe.util.JsonHelper;
 import lol.sylvie.bedframe.util.ResourceHelper;
-import net.fabricmc.loader.api.ModContainer;
 import net.kyori.adventure.key.Key;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.DoorBlock;
 import net.minecraft.command.argument.BlockArgumentParser;
 import net.minecraft.registry.Registries;
 import net.minecraft.state.property.BooleanProperty;
@@ -28,7 +22,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.EmptyBlockView;
 import org.geysermc.geyser.api.block.custom.CustomBlockData;
@@ -42,16 +35,10 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomBlocksEvent;
 import org.geysermc.geyser.api.util.CreativeCategory;
 import org.geysermc.pack.bedrock.resource.models.entity.ModelEntity;
 import org.geysermc.pack.converter.converter.model.ModelStitcher;
-import org.geysermc.pack.converter.util.DefaultLogListener;
-import org.geysermc.pack.converter.util.LogListener;
-import org.intellij.lang.annotations.Subst;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 import team.unnamed.creative.model.Model;
 import team.unnamed.creative.model.ModelTexture;
 import team.unnamed.creative.model.ModelTextures;
-import team.unnamed.creative.serialize.minecraft.font.FontSerializer;
 import team.unnamed.creative.serialize.minecraft.model.ModelSerializer;
 import xyz.nucleoid.packettweaker.PacketContext;
 
@@ -60,7 +47,6 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-import static lol.sylvie.bedframe.util.BedframeConstants.GSON;
 import static lol.sylvie.bedframe.util.BedframeConstants.LOGGER;
 import static lol.sylvie.bedframe.util.PathHelper.createDirectoryOrThrow;
 
@@ -252,7 +238,6 @@ public class BlockTranslator extends Translator {
                         continue;
                     }
 
-
                     for (Pair<String, String> face : faceMap) {
                         String javaFaceName = face.getLeft();
                         String bedrockFaceName = face.getRight();
@@ -284,6 +269,13 @@ public class BlockTranslator extends Translator {
                 }
 
                 // Textures/materials
+                if (materials.isEmpty()) {
+                    LOGGER.error("Couldn't generate materials for blockstate {}", state);
+                    continue;
+                }
+
+                // Particles
+                materials.put("*", materials.values().iterator().next());
                 for (Map.Entry<String, ModelTexture> entry : materials.entrySet()) {
                     ModelTexture texture = entry.getValue();
                     String textureName = texture.key().asString();
