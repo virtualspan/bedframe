@@ -18,10 +18,7 @@ import team.unnamed.creative.model.ElementRotation;
 import team.unnamed.creative.model.Model;
 import team.unnamed.creative.texture.TextureUV;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static lol.sylvie.bedframe.util.BedframeConstants.LOGGER;
 
@@ -136,38 +133,39 @@ public class JavaGeometryConverter {
 
             // UV
             Uv uv = new Uv();
-            if (!element.faces().isEmpty()) {
-                for (Map.Entry<CubeFace, ElementFace> faceEntry : element.faces().entrySet()) {
-                    CubeFace direction = faceEntry.getKey();
-                    ElementFace face = faceEntry.getValue();
-
-                    TextureUV textureUV = face.uv0();
-                    if (textureUV == null)
-                        textureUV = TextureUV.uv(0, 0, 1, 1);
-                    else textureUV =  TextureUV.uv(textureUV.from().multiply(16f), textureUV.to().multiply(16f));
-
-                    float[] uvValue;
-                    float[] uvSize;
-                    if (direction.axis() == Axis3D.Y) {
-                        uvValue = new float[] { textureUV.to().x(), textureUV.to().y() };
-                        uvSize = new float[] { (textureUV.from().x() - uvValue[0]), (textureUV.from().y() - uvValue[1]) };
-                    } else {
-                        uvValue = new float[] { textureUV.from().x(), textureUV.from().y() };
-                        uvSize = new float[] { (textureUV.to().x() - uvValue[0]), (textureUV.to().y() - uvValue[1]) };
-                    }
-
-                    applyFaceUv(uv, direction, uvValue, uvSize, face.texture().replace("#", ""));
-                }
-            } else {
+            Map<CubeFace, ElementFace> faceMap = element.faces();
+            if (faceMap.isEmpty()) {
+                faceMap = new HashMap<>();
                 for (CubeFace face : CubeFace.values()) {
-                    applyFaceUv(uv, face, new float[] { 0, 0 }, new float[] { 16, 16 }, face.name());
+                    faceMap.put(face, ElementFace.face().texture(face.name()).build());
                 }
+            }
+
+            for (Map.Entry<CubeFace, ElementFace> faceEntry : faceMap.entrySet()) {
+                CubeFace direction = faceEntry.getKey();
+                ElementFace face = faceEntry.getValue();
+
+                TextureUV textureUV = face.uv0();
+                if (textureUV == null)
+                    textureUV = TextureUV.uv(0, 0, 16f, 16f);
+                else textureUV = TextureUV.uv(textureUV.from().multiply(16f), textureUV.to().multiply(16f));
+
+                float[] uvValue;
+                float[] uvSize;
+                if (direction.axis() == Axis3D.Y) {
+                    uvValue = new float[] { textureUV.to().x(), textureUV.to().y() };
+                    uvSize = new float[] { (textureUV.from().x() - uvValue[0]), (textureUV.from().y() - uvValue[1]) };
+                } else {
+                    uvValue = new float[] { textureUV.from().x(), textureUV.from().y() };
+                    uvSize = new float[] { (textureUV.to().x() - uvValue[0]), (textureUV.to().y() - uvValue[1]) };
+                }
+
+                applyFaceUv(uv, direction, uvValue, uvSize, face.texture().replace("#", ""));
             }
 
             cube.uv(uv);
             bone.cubes(List.of(cube));
             bone.textureMeshes(null);
-
             bones.add(bone);
 
             nthElement++;
