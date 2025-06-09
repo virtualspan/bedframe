@@ -152,7 +152,9 @@ public class BlockTranslator extends Translator {
     private Model resolveModel(Identifier identifier) {
         // This is unstable (https://unnamed.team/docs/creative/latest/serialization/minecraft)
         try {
-            JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + identifier.getPath() + ".json");
+            String modelPath = identifier.getPath();
+            if (!(modelPath.startsWith("item/") || modelPath.startsWith("block/"))) modelPath = "block/" + modelPath;
+            JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + modelPath + ".json");
             return ModelSerializer.INSTANCE.deserializeFromJson(model, Key.key(identifier.toString()));
         } catch (RuntimeException e) {
             LOGGER.warn("Couldn't resolve model {}", identifier);
@@ -198,12 +200,13 @@ public class BlockTranslator extends Translator {
                 BlockState polymerBlockState = block.getPolymerBlockState(state, PacketContext.get());
                 BlockResourceCreator creator = PolymerBlockResourceUtilsAccessor.getCREATOR();
                 PolymerBlockModel[] polymerBlockModels = ((BlockResourceCreatorAccessor) (Object) creator).getModels().get(polymerBlockState);
-                PolymerBlockModel modelEntry = polymerBlockModels[0]; // TODO: java selects one by weight, does bedrock support this?
 
-                if (modelEntry == null) {
+                if (polymerBlockModels == null || polymerBlockModels.length == 0) {
                     LOGGER.warn("No model specified for blockstate {}", state);
                     continue;
                 }
+
+                PolymerBlockModel modelEntry = polymerBlockModels[0]; // TODO: java selects one by weight, does bedrock support this?
 
                 // Rotation
                 TransformationComponent rotationComponent = new TransformationComponent((360 - modelEntry.x()) % 360, (360 - modelEntry.y()) % 360, 0);
@@ -220,7 +223,7 @@ public class BlockTranslator extends Translator {
 
                 HashMap<String, ModelTexture> materials = new HashMap<>();
                 Key modelParentKey = blockModel.parent();
-                if (modelParentKey != null) {
+                if (modelParentKey != null && parentFaceMap.containsKey(modelParentKey.value())) {
                     // Vanilla parent
                     boolean cross = modelParentKey.toString().equals("minecraft:block/cross");
                     String geometryIdentifier = cross ?  "minecraft:geometry.cross" : "minecraft:geometry.full_block";
@@ -233,16 +236,11 @@ public class BlockTranslator extends Translator {
                     ModelTextures textures = blockModel.textures();
                     Map<String, ModelTexture> textureMap = textures.variables();
                     List<Pair<String, String>> faceMap = parentFaceMap.get(modelParentKey.value());
-                    if (faceMap == null) {
-                        LOGGER.error("No texture map found for parent {} of blockstate {}", modelParentKey, state);
-                        continue;
-                    }
 
                     for (Pair<String, String> face : faceMap) {
                         String javaFaceName = face.getLeft();
                         String bedrockFaceName = face.getRight();
                         if (!textureMap.containsKey(javaFaceName)) continue;
-
                         materials.put(bedrockFaceName, textureMap.get(javaFaceName));
                     }
                 } else {
@@ -275,9 +273,20 @@ public class BlockTranslator extends Translator {
                 }
 
                 // Particles
-                materials.put("*", materials.values().iterator().next());
+                if (!materials.containsKey("*"))
+                    materials.put("*", materials.values().iterator().next());
                 for (Map.Entry<String, ModelTexture> entry : materials.entrySet()) {
                     ModelTexture texture = entry.getValue();
+
+                    //String reference = texture.reference();
+                    //if (reference != null && materials.containsKey(reference))
+                    //    texture = materials.get(reference);
+
+                    if (texture.key() == null) {
+                        LOGGER.warn("Texture for block {} on side {} is missing", identifier, entry.getKey());
+                        continue;
+                    }
+
                     String textureName = texture.key().asString();
                     Identifier textureIdentifier = Identifier.of(textureName);
 
