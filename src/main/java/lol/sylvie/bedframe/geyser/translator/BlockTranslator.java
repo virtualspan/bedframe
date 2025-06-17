@@ -215,6 +215,11 @@ public class BlockTranslator extends Translator {
             for (BlockState state : realBlock.getStateManager().getStates()) {
                 CustomBlockComponents.Builder stateComponentBuilder = CustomBlockComponents.builder();
 
+                // Hardness
+                float hardness = state.getHardness(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
+                LOGGER.info("{} -> {}", identifier, hardness);
+                stateComponentBuilder.destructibleByMining(hardness);
+
                 // Obtain model data from polymers internal api
                 BlockState polymerBlockState = block.getPolymerBlockState(state, PacketContext.get());
                 BlockResourceCreator creator = PolymerBlockResourceUtilsAccessor.getCREATOR();
@@ -240,6 +245,7 @@ public class BlockTranslator extends Translator {
                     continue;
                 }
 
+                // Textures
                 HashMap<String, ModelTexture> materials = new HashMap<>();
                 Key modelParentKey = blockModel.parent();
                 if (modelParentKey != null && parentFaceMap.containsKey(modelParentKey.value())) {
@@ -251,7 +257,6 @@ public class BlockTranslator extends Translator {
                     GeometryComponent geometryComponent = GeometryComponent.builder().identifier(geometryIdentifier).build();
                     stateComponentBuilder.geometry(geometryComponent);
 
-                    // Textures
                     ModelTextures textures = blockModel.textures();
                     Map<String, ModelTexture> textureMap = textures.variables();
                     List<Pair<String, String>> faceMap = parentFaceMap.get(modelParentKey.value());
@@ -285,7 +290,6 @@ public class BlockTranslator extends Translator {
                     stateComponentBuilder.geometry(geometryComponent);
                 }
 
-                // Textures/materials
                 if (materials.isEmpty()) {
                     LOGGER.error("Couldn't generate materials for blockstate {}", state);
                     continue;
@@ -362,7 +366,6 @@ public class BlockTranslator extends Translator {
                 String stateCondition = String.join(" && ", conditions);
                 permutations.add(new CustomBlockPermutation(stateComponents, stateCondition));
             }
-
             builder.permutations(permutations);
 
             // Sounds
@@ -389,7 +392,7 @@ public class BlockTranslator extends Translator {
             // interactive sounds
             JsonObject interactiveSoundObject = new JsonObject();
             interactiveSoundObject.addProperty("pitch", soundGroup.getPitch());
-            interactiveSoundObject.addProperty("volume", soundGroup.getVolume());
+            interactiveSoundObject.addProperty("volume", soundGroup.getVolume() * .4); // The multiplier is arbitrary, its just too loud by default :(
 
             JsonObject interactiveEventsObject = new JsonObject();
             interactiveEventsObject.addProperty("fall", SoundUtils.translatePlaySound(soundGroup.getFallSound().id().toString()));

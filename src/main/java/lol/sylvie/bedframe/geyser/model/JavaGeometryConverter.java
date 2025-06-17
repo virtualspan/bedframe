@@ -7,7 +7,6 @@ import org.geysermc.pack.bedrock.resource.models.entity.modelentity.Geometry;
 import org.geysermc.pack.bedrock.resource.models.entity.modelentity.geometry.Bones;
 import org.geysermc.pack.bedrock.resource.models.entity.modelentity.geometry.Description;
 import org.geysermc.pack.bedrock.resource.models.entity.modelentity.geometry.bones.Cubes;
-import org.geysermc.pack.bedrock.resource.models.entity.modelentity.geometry.bones.TextureMeshes;
 import org.geysermc.pack.bedrock.resource.models.entity.modelentity.geometry.bones.cubes.Uv;
 import org.geysermc.pack.bedrock.resource.models.entity.modelentity.geometry.bones.cubes.uv.*;
 import team.unnamed.creative.base.Axis3D;
