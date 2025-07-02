@@ -1,8 +1,10 @@
 package lol.sylvie.bedframe.util;
 
 import com.google.gson.JsonObject;
+import eu.pb4.polymer.resourcepack.api.ResourcePackBuilder;
 import net.minecraft.util.Identifier;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -10,7 +12,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ResourceHelper {
+    public static ResourcePackBuilder PACK_BUILDER = null;
+
     public static InputStream getResource(String path) {
+        if (PACK_BUILDER != null) {
+            byte[] data = PACK_BUILDER.getData(path);
+            if (data != null) return new ByteArrayInputStream(data);
+        }
+
         return Thread.currentThread().getContextClassLoader().getResourceAsStream(path);
     }
 

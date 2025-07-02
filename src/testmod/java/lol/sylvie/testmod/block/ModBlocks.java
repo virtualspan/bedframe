@@ -3,6 +3,7 @@ package lol.sylvie.testmod.block;
 import eu.pb4.polymer.core.api.item.PolymerBlockItem;
 import lol.sylvie.testmod.Testmod;
 import lol.sylvie.testmod.block.impl.TexturedExampleBlock;
+import lol.sylvie.testmod.block.impl.TexturedFlowerPotExampleBlock;
 import lol.sylvie.testmod.block.impl.TexturedFlowerExampleBlock;
 import lol.sylvie.testmod.block.impl.TexturedLogExampleBlock;
 import net.minecraft.block.AbstractBlock;
@@ -38,6 +39,13 @@ public class ModBlocks {
             TexturedFlowerExampleBlock::new,
             AbstractBlock.Settings.create().sounds(BlockSoundGroup.GRASS).noCollision().breakInstantly().nonOpaque(),
             Items.WITHER_ROSE
+    );
+
+    public static final Block EXAMPLE_FLOWER_POT = register(
+            "example_flower_pot",
+            TexturedFlowerPotExampleBlock::new,
+            AbstractBlock.Settings.create().sounds(BlockSoundGroup.FLOWERBED).breakInstantly().nonOpaque(),
+            Items.FLOWER_POT
     );
 
     private static Block register(String name, Function<AbstractBlock.Settings, Block> blockFactory, AbstractBlock.Settings settings, Item polymerItem) {

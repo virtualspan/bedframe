@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.util.Identifier;
+import org.geysermc.pack.converter.util.LogListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
