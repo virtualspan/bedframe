@@ -56,8 +56,8 @@ public class PackGenerator {
     }
 
     private static void writeManifestFile(Path directory) throws IOException {
-        // TODO: Maybe generate this based on the mod list? Look into how aggressively Bedrock caches server resource packs
-        // (is it hash based? uuid based? version based?)
+        // TODO: Maybe generate this based on the mod list?
+        // It seems like bedrock uses UUID to cache resource packs
         String versionIdentifier = METADATA.getId() + "-" + METADATA.getVersion().getFriendlyString();
         boolean shouldRandomize = FabricLoader.getInstance().isDevelopmentEnvironment();
 

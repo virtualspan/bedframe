@@ -1,24 +1,29 @@
 package lol.sylvie.bedframe.geyser;
 
-import lol.sylvie.bedframe.BedframeInitializer;
 import lol.sylvie.bedframe.geyser.translator.BlockTranslator;
 import lol.sylvie.bedframe.geyser.translator.ItemTranslator;
 import lol.sylvie.bedframe.util.BedframeConstants;
+import lol.sylvie.bedframe.util.ResourceHelper;
 import org.geysermc.geyser.api.GeyserApi;
 import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineResourcePacksEvent;
 import org.geysermc.geyser.api.pack.PackCodec;
 import org.geysermc.geyser.api.pack.ResourcePack;
+import org.geysermc.pack.converter.util.DefaultLogListener;
+import org.geysermc.pack.converter.util.VanillaPackProvider;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.zip.ZipFile;
 
 public class TranslationManager implements EventRegistrar {
     private static final PackGenerator packGenerator = new PackGenerator();
     private boolean generatedResources = false;
+
+    public static boolean INCLUDE_TEXTURE_HACK = false;
 
     public TranslationManager() {}
 
@@ -37,10 +42,23 @@ public class TranslationManager implements EventRegistrar {
             return;
         }
 
+        Path resourcePack = BedframeConstants.CONFIG_DIR.resolve("bedframe.zip");
+        Path vanillaPath = BedframeConstants.CONFIG_DIR.resolve("vanilla.zip");
 
-        Path resourcePack = BedframeInitializer.CONFIG_DIR.resolve("bedframe.zip");
+        // i'm sorry
+        // TODO: don't do this. and also see if we can avoid double-downloading
+        INCLUDE_TEXTURE_HACK = true;
+        VanillaPackProvider.create(vanillaPath, new DefaultLogListener());
+        INCLUDE_TEXTURE_HACK = false;
 
-        EventBus<EventRegistrar> eventBus = GeyserApi.api().eventBus();
+        try {
+            ResourceHelper.VANILLA_PACK = new ZipFile(vanillaPath.toFile());
+        } catch (IOException e) {
+			BedframeConstants.LOGGER.error("Couldn't read vanilla resources", e);
+		}
+
+
+		EventBus<EventRegistrar> eventBus = GeyserApi.api().eventBus();
         for (Translator translator : translators) {
             translator.register(eventBus, packSourceDir);
         }

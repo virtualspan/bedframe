@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import net.minecraft.util.Pair;
 import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
+import team.unnamed.creative.ResourcePack;
 
 import java.io.File;
 import java.io.FileWriter;

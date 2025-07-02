@@ -21,6 +21,7 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomItemsEvent;
 import org.geysermc.geyser.api.item.custom.CustomItemOptions;
 import org.geysermc.geyser.api.item.custom.NonVanillaCustomItemData;
 import org.geysermc.geyser.api.util.CreativeCategory;
+import team.unnamed.creative.ResourcePack;
 import xyz.nucleoid.packettweaker.PacketContext;
 
 import java.nio.file.Path;

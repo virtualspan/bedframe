@@ -10,9 +10,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class ResourceHelper {
     public static ResourcePackBuilder PACK_BUILDER = null;
+    public static ZipFile VANILLA_PACK = null;
 
     public static InputStream getResource(String path) {
         if (PACK_BUILDER != null) {
@@ -20,7 +23,16 @@ public class ResourceHelper {
             if (data != null) return new ByteArrayInputStream(data);
         }
 
-        return Thread.currentThread().getContextClassLoader().getResourceAsStream(path);
+        InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(path);
+        if (stream != null) return stream;
+
+        try {
+            ZipEntry entry = VANILLA_PACK.getEntry(path);
+            return VANILLA_PACK.getInputStream(entry);
+        } catch (IOException e) {
+            BedframeConstants.LOGGER.error("Couldn't find resource {}", path);
+            throw new RuntimeException(e);
+        }
     }
 
     public static String getResourcePath(String namespace, String path) {

@@ -9,7 +9,8 @@
     "PolymerBlockResourceUtilsAccessor",
     "PolymerBlockUtilsMixin",
     "PolymerItemMixin",
-    "PolymerItemUtilsMixin"
+    "PolymerItemUtilsMixin",
+    "VanillaPackProviderMixin"
   ],
   "injectors": {
     "defaultRequire": 1

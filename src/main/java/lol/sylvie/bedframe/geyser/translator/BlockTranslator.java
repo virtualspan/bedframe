@@ -45,10 +45,13 @@ import org.geysermc.geyser.util.MathUtils;
 import org.geysermc.geyser.util.SoundUtils;
 import org.geysermc.pack.bedrock.resource.models.entity.ModelEntity;
 import org.geysermc.pack.converter.converter.model.ModelStitcher;
+import org.geysermc.pack.converter.util.VanillaPackProvider;
 import org.joml.Vector3f;
+import team.unnamed.creative.ResourcePack;
 import team.unnamed.creative.model.Model;
 import team.unnamed.creative.model.ModelTexture;
 import team.unnamed.creative.model.ModelTextures;
+import team.unnamed.creative.serialize.minecraft.MinecraftResourcePackReader;
 import team.unnamed.creative.serialize.minecraft.model.ModelSerializer;
 import xyz.nucleoid.packettweaker.PacketContext;
 
