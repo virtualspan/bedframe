@@ -1,8 +1,12 @@
 # Bedframe
 
-## Premise
+> [!WARNING]
+> Bedframe is in early development, and you should *expect* problems. Batteries not included. See store for details.
 
 Translation layer that converts textured/custom server-side Polymer blocks and items to native Bedrock representations.
+
+> [!NOTE]
+> If you are looking for general modding support on bedrock, see if [Hydraulic](https://github.com/GeyserMC/Hydraulic) works for you. Their conversion code is better than mine. Do note that Hydraulic *does not* support Polymer mods at the moment, and I haven't tested if both mods work at the same time.
 
 ## Requirements
 
@@ -13,22 +17,17 @@ You also probably want Polymer's Auto-Host feature, but Bedframe doesn't require
 
 ## Compatibility
 
-- Works perfectly with [More Furnaces (Polymer)](https://modrinth.com/mod/morefurnaces)*
-- Works perfectly with [Televator](https://modrinth.com/mod/televator)
-- Will probably work with most simple Polymer Resource Pack mods
+Polymer mods that use display entities are not supported at the moment. (Geyser simply doesn't support it). So far I've tested the following:
 
-*technically there is an item display for upgrades, but its hardly noticeable 
+- [Tom's Server Additions](https://modrinth.com/mods?q=Tom%27s+Server+Additions) (EXCLUDING Decorations and Furniture)
+- [More Furnaces](https://modrinth.com/mod/morefurnaces)
+- [Televator](https://modrinth.com/mod/televator)
+- [Navigation Compasses](https://modrinth.com/mod/navigation-compasses) (might be under review)
 
-## Limitations & Goals
+Bedframe does not touch non-textured blocks (so mods like [Server-Side Waystones](https://modrinth.com/mod/sswaystones) will work as expected)
 
-- Custom models (a.k.a non-full-block or cross-block) do not work
-- Entities are not touched
-- Mods that use block displays don't work
-
-### Mods
-- [Borukva-Food](https://github.com/MykhailoOpryshok/Borukva-Food/tree/master) is missing many models/textures (mostly crops and 3D tools)
-- [Tom's Server Additions](https://modrinth.com/mods?q=Tom%27s+Server+Additions) is quite *iffy*
+Feel free to [make an issue](https://github.com/sylvxa/bedframe/issues/new) for incompatible mods.
 
 ## License
 
-This template is available under the CC0 license. Feel free to learn from it and incorporate it in your own project
+This mod is available under the CC0 license. Feel free to learn from it and incorporate it in your own project

@@ -107,7 +107,10 @@ public class JavaGeometryConverter {
             // Transform
             Cubes cube = new Cubes();
             cube.origin(javaPosToBedrock(javaFrom));
-            cube.size(new float[] { javaTo[0] - javaFrom[0], javaTo[1] - javaFrom[1], javaTo[2] - javaFrom[2] });
+            cube.size(new float[] {
+                    javaTo[0] - javaFrom[0],
+                    javaTo[1] - javaFrom[1],
+                    javaTo[2] - javaFrom[2] });
             cube.inflate(0f);
 
             // Rotation
@@ -117,7 +120,7 @@ public class JavaGeometryConverter {
                 bone.pivot(javaPosToBedrock(rotOrigin));
 
                 // We are given an angle and an axis, and we need to provide a vector
-                float rotValue = rotation.angle();
+                float rotValue = (360 - rotation.angle()) % 360;
                 Axis3D axis = rotation.axis();
                 float[] rotArray = new float[] {
                         axis == Axis3D.X ? rotValue : 0f,
@@ -174,7 +177,10 @@ public class JavaGeometryConverter {
         modelEntity.geometry(List.of(geometry));
 
         String namespace = model.key().namespace();
-        String geometryName = String.format(GEOMETRY_FORMAT, (namespace.equals(Key.MINECRAFT_NAMESPACE) ? "" : namespace + ".") + model.key().value().replace(":", ".").replace("/", "."));
+        String[] pathSplit = model.key().value().split("/");
+        String path = pathSplit[pathSplit.length - 1];
+        String geometryName = String.format(GEOMETRY_FORMAT, (namespace.equals(Key.MINECRAFT_NAMESPACE) ? "" : namespace + ".") +
+                path.replace(":", "."));
 
         Description description = new Description();
         description.identifier(geometryName);

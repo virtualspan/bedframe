@@ -3,15 +3,16 @@ package lol.sylvie.bedframe.geyser;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import lol.sylvie.bedframe.util.BedframeConstants;
-import lol.sylvie.bedframe.util.PathHelper;
-import lol.sylvie.bedframe.util.ResourceHelper;
-import lol.sylvie.bedframe.util.ZipHelper;
+import lol.sylvie.bedframe.util.*;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.Version;
+import net.minecraft.text.Text;
+import net.minecraft.util.Pair;
 import org.geysermc.pack.converter.util.NioDirectoryFileTreeReader;
 import team.unnamed.creative.ResourcePack;
 import team.unnamed.creative.serialize.minecraft.MinecraftResourcePackReader;
+import xyz.nucleoid.server.translations.api.language.TranslationAccess;
+import xyz.nucleoid.server.translations.impl.ServerTranslations;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -99,24 +100,23 @@ public class PackGenerator {
         PathHelper.createDirectoryOrThrow(textsDir);
 
         // TODO: I'm not sure if translations are even necessary
-        /*JsonArray languages = new JsonArray();
+        JsonArray languages = new JsonArray();
 
         ArrayList<Pair<String, String>> allKeys = new ArrayList<>();
         translators.forEach(t -> allKeys.addAll(t.getTranslations()));
 
         TranslationHelper.LANGUAGES.forEach((code) -> {
-            TranslationAccess access = ServerTranslations.INSTANCE.getLanguage(code).serverTranslations();
             try (FileWriter writer = new FileWriter(textsDir.resolve(code + ".lang").toFile())) {
                 for (Pair<String, String> keyPair : allKeys) {
-                    writer.write(keyPair.getLeft() + "=" + access.get(keyPair.getRight()) + "\n");
+                    writer.write(keyPair.getLeft() + "=" + Text.translatable(keyPair.getRight()).getString() + "\n");
                 }
             } catch (IOException e) {
-                bedframe.getLogger().error("Couldn't write language file");
+                BedframeConstants.LOGGER.error("Couldn't write language file");
             }
 
             languages.add(code);
         });
-        writeJsonToFile(languages, textsDir.resolve("languages.json").toFile());*/
+        writeJsonToFile(languages, textsDir.resolve("languages.json").toFile());
 
         Optional<String> icon = METADATA.getIconPath(512);
         Files.copy(ResourceHelper.getResource(icon.orElseThrow()), packPath.resolve("pack_icon.png"));

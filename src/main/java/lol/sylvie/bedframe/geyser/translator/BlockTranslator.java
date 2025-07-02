@@ -26,6 +26,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.EmptyBlockView;
 import org.geysermc.geyser.api.block.custom.CustomBlockData;
@@ -39,6 +41,7 @@ import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomBlocksEvent;
 import org.geysermc.geyser.api.util.CreativeCategory;
+import org.geysermc.geyser.util.MathUtils;
 import org.geysermc.geyser.util.SoundUtils;
 import org.geysermc.pack.bedrock.resource.models.entity.ModelEntity;
 import org.geysermc.pack.converter.converter.model.ModelStitcher;
@@ -84,7 +87,7 @@ public class BlockTranslator extends Translator {
                     new Pair<>("side", "south"),
                     new Pair<>("side", "east"),
                     new Pair<>("side", "west")
-            )/*,
+            ),
             "block/cube_column_horizontal", List.of(
                     new Pair<>("side", "*"),
                     new Pair<>("end", "up"),
@@ -99,7 +102,7 @@ public class BlockTranslator extends Translator {
                     new Pair<>("front", "north"),
                     new Pair<>("top", "up"),
                     new Pair<>("bottom", "down")
-            )*/
+            )
     );
 
     private static final ArrayList<PolymerBlock> registeredBlocks = new ArrayList<>();
@@ -141,19 +144,51 @@ public class BlockTranslator extends Translator {
         }
     }
 
+    // okay so this is very much hydraulic code
+    // TODO: see if shape.getBoundingBox() can replace the code here
     private BoxComponent voxelShapeToBoxComponent(VoxelShape shape) {
-        if (shape.isEmpty()) {
+        if (shape.isEmpty())
             return BoxComponent.emptyBox();
+
+        float minX = Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE;
+        float minZ = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE;
+        float maxY = -Float.MAX_VALUE;
+        float maxZ = -Float.MAX_VALUE;
+
+        for (Box boundingBox : shape.getBoundingBoxes()) {
+            double offsetX = boundingBox.getLengthX() * 0.5;
+            double offsetY = boundingBox.getLengthY() * 0.5;
+            double offsetZ = boundingBox.getLengthZ() * 0.5;
+
+            Vec3d center = boundingBox.getCenter();
+
+            minX = Math.min(minX, (float) (center.getX() - offsetX));
+            minY = Math.min(minY, (float) (center.getY() - offsetY));
+            minZ = Math.min(minZ, (float) (center.getZ() - offsetZ));
+
+            maxX = Math.max(maxX, (float) (center.getX() + offsetX));
+            maxY = Math.max(maxY, (float) (center.getY() + offsetY));
+            maxZ = Math.max(maxZ, (float) (center.getZ() + offsetZ));
         }
 
-        Box box = shape.getBoundingBox();
+        minX = MathUtils.clamp(minX, 0, 1);
+        minY = MathUtils.clamp(minY, 0, 1);
+        minZ = MathUtils.clamp(minZ, 0, 1);
 
-        float sizeX = (float) box.getLengthX() * 16;
-        float sizeY = (float) box.getLengthY() * 16;
-        float sizeZ = (float) box.getLengthZ() * 16;
+        maxX = MathUtils.clamp(maxX, 0, 1);
+        maxY = MathUtils.clamp(maxY, 0, 1);
+        maxZ = MathUtils.clamp(maxZ, 0, 1);
 
-        Vector3f origin = box.getMinPos().toVector3f();
-        return new BoxComponent(origin.x() - 8, origin.y(), origin.z() - 8, sizeX, sizeY, sizeZ);
+        return new BoxComponent(
+                16 * (1 - maxX) - 8,
+                16 * minY,
+                16 * minZ - 8,
+                16 * (maxX - minX),
+                16 * (maxY - minY),
+                16 * (maxZ - minZ)
+        );
     }
 
     private Model resolveModel(Identifier identifier) {
@@ -198,7 +233,7 @@ public class BlockTranslator extends Translator {
         forEachBlock((identifier, block) -> {
             Block realBlock = Registries.BLOCK.get(identifier);
             // Block names
-            addTranslationKey("tile." + identifier.toString() + ".name", realBlock.getTranslationKey());
+            addTranslationKey("block." + identifier.getNamespace() + "." + identifier.getPath(), realBlock.getTranslationKey());
 
             NonVanillaCustomBlockData.Builder builder = NonVanillaCustomBlockData.builder()
                     .name(identifier.getPath())
@@ -217,7 +252,6 @@ public class BlockTranslator extends Translator {
 
                 // Hardness
                 float hardness = state.getHardness(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
-                LOGGER.info("{} -> {}", identifier, hardness);
                 stateComponentBuilder.destructibleByMining(hardness);
 
                 // Obtain model data from polymers internal api
@@ -297,7 +331,10 @@ public class BlockTranslator extends Translator {
 
                 // Particles
                 ModelTextures textures = blockModel.textures();
-                materials.put("*", textures.particle() == null ? materials.values().iterator().next() : textures.particle());
+                if (!materials.containsKey("*")) {
+                    ModelTexture texture = textures.particle() == null ? materials.values().iterator().next() : textures.particle();
+                    materials.put("*", texture);
+                }
 
                 for (Map.Entry<String, ModelTexture> entry : materials.entrySet()) {
                     ModelTexture texture = entry.getValue();
@@ -339,8 +376,12 @@ public class BlockTranslator extends Translator {
                 }
 
                 // Collision
-                stateComponentBuilder.collisionBox(voxelShapeToBoxComponent(state.getCollisionShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)));
-                stateComponentBuilder.selectionBox(voxelShapeToBoxComponent(state.getOutlineShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)));
+                VoxelShape collisionBox = state.getCollisionShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
+                stateComponentBuilder.collisionBox(voxelShapeToBoxComponent(collisionBox));
+
+                VoxelShape outlineBox = state.getOutlineShape(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
+                stateComponentBuilder.selectionBox(voxelShapeToBoxComponent(outlineBox));
+
                 stateComponentBuilder.lightEmission(state.getLuminance());
 
                 CustomBlockComponents stateComponents = stateComponentBuilder.build();

@@ -59,6 +59,7 @@ public class TranslationManager implements EventRegistrar {
                 }
 
                 event.register(ResourcePack.create(PackCodec.path(resourcePack)));
+                BedframeConstants.LOGGER.info("Registered resource pack");
             } catch (IOException e) {
                 BedframeConstants.LOGGER.error("Couldn't generate resource pack", e);
             }
