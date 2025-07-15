@@ -8,6 +8,15 @@ Translation layer that converts textured/custom server-side Polymer blocks and i
 > [!NOTE]
 > If you are looking for general modding support on bedrock, see if [Hydraulic](https://github.com/GeyserMC/Hydraulic) works for you. Their conversion code is better than mine. Do note that Hydraulic *does not* support Polymer mods at the moment, and I haven't tested if both mods work at the same time.
 
+## Usage
+
+Due to its unstable nature, I do not provide builds on Modrinth at this moment. However, GitHub Actions builds can be obtained by:
+
+- Going to the [Actions](https://github.com/sylvxa/bedframe/actions) page
+- Clicking the latest working build's title 
+- Clicking "Artifacts" near the bottom of the action page
+- Extracting the resulting zip and installing `bedframe-x.x.x.jar` onto your server
+
 ## Requirements
 
 - [Geyser-Fabric](https://geysermc.org/download)
