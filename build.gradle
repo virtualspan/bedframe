@@ -85,6 +85,9 @@ dependencies {
 
 	include api("org.geysermc.pack:converter:${project.pack_converter_version}")
 	include api("org.geysermc.pack:pack-schema-api:${project.pack_converter_version}")
+
+    include api("com.github.GeyserMC.unnamed-creative:creative-api:817fa982c4")
+    include api("com.github.GeyserMC.unnamed-creative:creative-serializer-minecraft:817fa982c4")
 }
 
 processResources {
