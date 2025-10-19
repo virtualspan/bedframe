@@ -30,6 +30,7 @@ import static lol.sylvie.bedframe.util.BedframeConstants.METADATA;
  */
 public class PackGenerator {
     private static final HashMap<String, ResourcePack> RESOURCE_PACK_MAP = new HashMap<>();
+    public static boolean TRANSLATE_OPTIONAL_ITEMS_HACK = false;
 
     private static JsonArray getVersionArray() {
         // TODO: A regex would be more inclusive

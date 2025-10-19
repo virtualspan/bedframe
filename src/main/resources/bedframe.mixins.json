@@ -10,6 +10,7 @@
     "PolymerBlockUtilsMixin",
     "PolymerItemMixin",
     "PolymerItemUtilsMixin",
+    "PolymerResourcePackUtilsMixin",
     "VanillaPackProviderMixin"
   ],
   "injectors": {

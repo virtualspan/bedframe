@@ -28,8 +28,10 @@ repositories {
 
 	// Serves "creative" library, needed for pack converter
 	maven {
-		url = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+		url = uri("https://jitpack.io")
 	}
+
+    mavenCentral()
 }
 
 sourceSets {
@@ -83,8 +85,6 @@ dependencies {
 
 	include api("org.geysermc.pack:converter:${project.pack_converter_version}")
 	include api("org.geysermc.pack:pack-schema-api:${project.pack_converter_version}")
-	include api("team.unnamed:creative-api:1.8.2-SNAPSHOT")
-	include api("team.unnamed:creative-serializer-minecraft:1.8.2-SNAPSHOT")
 }
 
 processResources {

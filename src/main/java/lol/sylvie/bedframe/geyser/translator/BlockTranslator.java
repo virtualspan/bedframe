@@ -1,10 +1,13 @@
 package lol.sylvie.bedframe.geyser.translator;
 
 import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Either;
 import eu.pb4.polymer.blocks.api.BlockResourceCreator;
+import eu.pb4.polymer.blocks.api.MultiPolymerBlockModel;
 import eu.pb4.polymer.blocks.api.PolymerBlockModel;
 import eu.pb4.polymer.blocks.api.PolymerTexturedBlock;
 import eu.pb4.polymer.core.api.block.PolymerBlock;
+import lol.sylvie.bedframe.geyser.TranslationManager;
 import lol.sylvie.bedframe.geyser.Translator;
 import lol.sylvie.bedframe.geyser.model.JavaGeometryConverter;
 import lol.sylvie.bedframe.mixin.BlockResourceCreatorAccessor;
@@ -26,7 +29,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Pair;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.EmptyBlockView;
@@ -44,14 +46,10 @@ import org.geysermc.geyser.api.util.CreativeCategory;
 import org.geysermc.geyser.util.MathUtils;
 import org.geysermc.geyser.util.SoundUtils;
 import org.geysermc.pack.bedrock.resource.models.entity.ModelEntity;
-import org.geysermc.pack.converter.converter.model.ModelStitcher;
-import org.geysermc.pack.converter.util.VanillaPackProvider;
-import org.joml.Vector3f;
-import team.unnamed.creative.ResourcePack;
+import org.geysermc.pack.converter.type.model.ModelStitcher;
 import team.unnamed.creative.model.Model;
 import team.unnamed.creative.model.ModelTexture;
 import team.unnamed.creative.model.ModelTextures;
-import team.unnamed.creative.serialize.minecraft.MinecraftResourcePackReader;
 import team.unnamed.creative.serialize.minecraft.model.ModelSerializer;
 import xyz.nucleoid.packettweaker.PacketContext;
 
@@ -258,16 +256,28 @@ public class BlockTranslator extends Translator {
                 stateComponentBuilder.destructibleByMining(hardness);
 
                 // Obtain model data from polymers internal api
+                TranslationManager.INCLUDE_OPTIONAL_TEXTURES_HACK = true;
                 BlockState polymerBlockState = block.getPolymerBlockState(state, PacketContext.get());
                 BlockResourceCreator creator = PolymerBlockResourceUtilsAccessor.getCREATOR();
-                PolymerBlockModel[] polymerBlockModels = ((BlockResourceCreatorAccessor) (Object) creator).getModels().get(polymerBlockState);
-
-                if (polymerBlockModels == null || polymerBlockModels.length == 0) {
-                    LOGGER.warn("No model specified for blockstate {}", state);
+                Either<PolymerBlockModel[], MultiPolymerBlockModel> polymerBlockModels = ((BlockResourceCreatorAccessor) (Object) creator).getModels().get(polymerBlockState);
+                TranslationManager.INCLUDE_OPTIONAL_TEXTURES_HACK = false;
+                if (polymerBlockModels == null) {
+                    LOGGER.warn("Models are null for blockstate {}", state);
                     continue;
                 }
 
-                PolymerBlockModel modelEntry = polymerBlockModels[0]; // TODO: java selects one by weight, does bedrock support this?
+                PolymerBlockModel[] listModels;
+                if (polymerBlockModels.left().isPresent()) {
+                    listModels = polymerBlockModels.left().orElseThrow();
+                } else {
+                    listModels = polymerBlockModels.right().orElseThrow().models().getFirst();
+                }
+
+                if (listModels.length == 0) {
+                    LOGGER.warn("Models are empty for blockstate {}", state);
+                    continue;
+                }
+                PolymerBlockModel modelEntry = listModels[0]; // TODO: java selects one by weight, does bedrock support this?
 
                 // Rotation
                 TransformationComponent rotationComponent = new TransformationComponent((360 - modelEntry.x()) % 360, (360 - modelEntry.y()) % 360, 0);

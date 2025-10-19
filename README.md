@@ -1,22 +1,13 @@
 # Bedframe
 
 > [!WARNING]
-> Bedframe is in early development, and you should *expect* problems. Batteries not included. See store for details.
+> Bedframe is in early development (and may stay that way), so you should *expect* problems. Batteries not included. See store for details.
 
 Translation layer that converts textured/custom server-side Polymer blocks and items to native Bedrock representations.
 
 > [!NOTE]
-> If you are looking for general modding support on bedrock, see if [Hydraulic](https://github.com/GeyserMC/Hydraulic) works for you. Their conversion code is better than mine. Do note that Hydraulic *does not* support Polymer mods at the moment, and I haven't tested if both mods work at the same time.
-
-## Usage
-
-Due to its unstable nature, I do not provide builds on Modrinth at this moment. However, GitHub Actions builds can be obtained by:
-
-- Going to the [Actions](https://github.com/sylvxa/bedframe/actions) page
-- Clicking the latest working build's title 
-- Clicking "Artifacts" near the bottom of the action page
-- Extracting the resulting zip and installing `bedframe-x.x.x.jar` onto your server
-
+> If you are looking for general modding support on bedrock, see if [Hydraulic](https://github.com/GeyserMC/Hydraulic) works for you. Or, if you are looking for specifically Polymer support and can use Geyser's Custom Item API V2 preview, see if [Rainbow](https://geysermc.org/wiki/other/rainbow/) works for you. Their conversion code is better than mine. Do note that Hydraulic *does not* support Polymer mods at the moment, and I haven't tested if both mods work at the same time.
+> 
 ## Requirements
 
 - [Geyser-Fabric](https://geysermc.org/download)
@@ -31,7 +22,7 @@ Polymer mods that use display entities are not supported at the moment. (Geyser 
 - [Tom's Server Additions](https://modrinth.com/mods?q=Tom%27s+Server+Additions) (EXCLUDING Decorations and Furniture)
 - [More Furnaces](https://modrinth.com/mod/morefurnaces)
 - [Televator](https://modrinth.com/mod/televator)
-- [Navigation Compasses](https://modrinth.com/mod/navigation-compasses) (might be under review)
+- [Navigation Compasses](https://modrinth.com/mod/navigation-compasses)
 
 Bedframe does not touch non-textured blocks (so mods like [Server-Side Waystones](https://modrinth.com/mod/sswaystones) will work as expected)
 

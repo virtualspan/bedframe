@@ -23,6 +23,7 @@ public class TranslationManager implements EventRegistrar {
     private static final PackGenerator packGenerator = new PackGenerator();
     private boolean generatedResources = false;
 
+    public static boolean INCLUDE_OPTIONAL_TEXTURES_HACK = false;
     public static boolean INCLUDE_TEXTURE_HACK = false;
 
     public TranslationManager() {}
@@ -56,7 +57,6 @@ public class TranslationManager implements EventRegistrar {
         } catch (IOException e) {
 			BedframeConstants.LOGGER.error("Couldn't read vanilla resources", e);
 		}
-
 
 		EventBus<EventRegistrar> eventBus = GeyserApi.api().eventBus();
         for (Translator translator : translators) {

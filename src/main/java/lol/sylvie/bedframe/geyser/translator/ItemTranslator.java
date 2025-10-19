@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import eu.pb4.polymer.core.api.item.PolymerItem;
 import eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils;
 import eu.pb4.polymer.resourcepack.api.ResourcePackCreator;
+import lol.sylvie.bedframe.geyser.TranslationManager;
 import lol.sylvie.bedframe.geyser.Translator;
 import lol.sylvie.bedframe.util.BedframeConstants;
 import lol.sylvie.bedframe.util.ResourceHelper;
@@ -78,8 +79,10 @@ public class ItemTranslator extends Translator {
             ItemStack realDefaultItemStack = realItem.getDefaultStack();
 
             // I know there is item.getPolymerItemModel but some developers (cough me cough) just override the itemstack model
+            TranslationManager.INCLUDE_OPTIONAL_TEXTURES_HACK = true;
             ItemStack itemStack = item.getPolymerItemStack(realItem.getDefaultStack(), TooltipType.BASIC, PacketContext.get());
             Identifier model = itemStack.get(DataComponentTypes.ITEM_MODEL);
+            TranslationManager.INCLUDE_OPTIONAL_TEXTURES_HACK = false;
 
             if (model == null || model.getNamespace().equals("minecraft")) return; // FIXME: some people (cough me cough) store their models in the minecraft namespace
 
