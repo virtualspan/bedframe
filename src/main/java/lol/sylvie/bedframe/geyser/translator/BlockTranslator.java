@@ -200,7 +200,7 @@ public class BlockTranslator extends Translator {
             JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + modelPath + ".json");
             return ModelSerializer.INSTANCE.deserializeFromJson(model, Key.key(identifier.toString()));
         } catch (RuntimeException e) {
-            LOGGER.warn("Couldn't resolve model {}", identifier);
+            LOGGER.warn("Couldn't resolve model {}", identifier, e);
             return null;
         }
     }
