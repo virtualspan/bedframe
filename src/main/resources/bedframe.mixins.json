@@ -5,7 +5,6 @@
   "mixins": [
     "BlockResourceCreatorAccessor",
     "CustomBlockRegistryPopulatorMixin",
-    "CustomItemRegistryPopulatorMixin",
     "ElementRotationMixin",
     "PolymerBlockResourceUtilsAccessor",
     "PolymerBlockUtilsMixin",
