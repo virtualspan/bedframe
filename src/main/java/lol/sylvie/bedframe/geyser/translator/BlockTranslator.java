@@ -12,6 +12,7 @@ import lol.sylvie.bedframe.geyser.Translator;
 import lol.sylvie.bedframe.geyser.model.JavaGeometryConverter;
 import lol.sylvie.bedframe.mixin.BlockResourceCreatorAccessor;
 import lol.sylvie.bedframe.mixin.PolymerBlockResourceUtilsAccessor;
+import lol.sylvie.bedframe.util.BedframeBlacklist;
 import lol.sylvie.bedframe.util.ResourceHelper;
 import net.kyori.adventure.key.Key;
 import net.minecraft.block.Block;
@@ -32,10 +33,7 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.EmptyBlockView;
-import org.geysermc.geyser.api.block.custom.CustomBlockData;
-import org.geysermc.geyser.api.block.custom.CustomBlockPermutation;
-import org.geysermc.geyser.api.block.custom.CustomBlockState;
-import org.geysermc.geyser.api.block.custom.NonVanillaCustomBlockData;
+import org.geysermc.geyser.api.block.custom.*;
 import org.geysermc.geyser.api.block.custom.component.*;
 import org.geysermc.geyser.api.block.custom.nonvanilla.JavaBlockState;
 import org.geysermc.geyser.api.block.custom.nonvanilla.JavaBoundingBox;
@@ -64,13 +62,8 @@ import static lol.sylvie.bedframe.util.PathHelper.createDirectoryOrThrow;
 public class BlockTranslator extends Translator {
     // Maps parent models to a map containing the translations between Java sides and Bedrock sides
     private static final Map<String, List<Pair<String, String>>> parentFaceMap = Map.of(
-            "block/cube_all", List.of(
-                    new Pair<>("all", "*")
-            ),
-            "block/cross", List.of(
-                    new Pair<>("particle", "*"),
-                    new Pair<>("cross", "*")
-            ),
+            "block/cube_all", List.of(new Pair<>("all", "*")),
+            "block/cross", List.of(new Pair<>("particle", "*"), new Pair<>("cross", "*")),
             "block/cube_bottom_top", List.of(
                     new Pair<>("side", "*"),
                     new Pair<>("top", "up"),
@@ -110,7 +103,14 @@ public class BlockTranslator extends Translator {
     private final HashMap<Identifier, PolymerTexturedBlock> blocks = new HashMap<>();
 
     public BlockTranslator() {
-        Stream<Identifier> blockIds = Registries.BLOCK.getIds().stream();
+        // Load blacklist (hardcoded + config)
+        Set<String> blacklist = BedframeBlacklist.getFullBlacklist(
+                net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir()
+        );
+
+        // Filter blocks by namespace
+        Stream<Identifier> blockIds = Registries.BLOCK.getIds().stream()
+                .filter(id -> !blacklist.contains(id.getNamespace()));
 
         blockIds.forEach(identifier -> {
             Block block = Registries.BLOCK.get(identifier);
@@ -119,7 +119,6 @@ public class BlockTranslator extends Translator {
             }
         });
     }
-
     private void forEachBlock(BiConsumer<Identifier, PolymerTexturedBlock> function) {
         for (Map.Entry<Identifier, PolymerTexturedBlock> entry : blocks.entrySet()) {
             try {
@@ -138,15 +137,17 @@ public class BlockTranslator extends Translator {
                 case BooleanProperty ignored ->
                         builder.booleanProperty(property.getName());
                 case EnumProperty<?> enumProperty ->
-                        builder.stringProperty(enumProperty.getName(), enumProperty.getValues().stream().map(Enum::name).map(String::toLowerCase).toList());
+                        builder.stringProperty(enumProperty.getName(),
+                                enumProperty.getValues().stream()
+                                        .map(Enum::name)
+                                        .map(String::toLowerCase)
+                                        .toList());
                 default ->
                         LOGGER.error("Unknown property type: {}", property.getClass().getName());
             }
         }
     }
 
-    // okay so this is very much hydraulic code
-    // TODO: see if shape.getBoundingBox() can replace the code here
     private BoxComponent voxelShapeToBoxComponent(VoxelShape shape) {
         if (shape.isEmpty())
             return BoxComponent.emptyBox();
@@ -193,11 +194,15 @@ public class BlockTranslator extends Translator {
     }
 
     private Model resolveModel(Identifier identifier) {
-        // This is unstable (https://unnamed.team/docs/creative/latest/serialization/minecraft)
         try {
             String modelPath = identifier.getPath();
-            if (!(modelPath.startsWith("item/") || modelPath.startsWith("block/"))) modelPath = "block/" + modelPath;
-            JsonObject model = ResourceHelper.readJsonResource(identifier.getNamespace(), "models/" + modelPath + ".json");
+            if (!(modelPath.startsWith("item/") || modelPath.startsWith("block/"))) {
+                modelPath = "block/" + modelPath;
+            }
+            JsonObject model = ResourceHelper.readJsonResource(
+                    identifier.getNamespace(),
+                    "models/" + modelPath + ".json"
+            );
             return ModelSerializer.INSTANCE.deserializeFromJson(model, Key.key(identifier.toString()));
         } catch (RuntimeException e) {
             LOGGER.warn("Couldn't resolve model {}", identifier, e);
@@ -209,8 +214,12 @@ public class BlockTranslator extends Translator {
         return registeredBlocks.contains(block);
     }
 
-    // Referenced https://github.com/GeyserMC/Hydraulic/blob/master/shared/src/main/java/org/geysermc/hydraulic/block/BlockPackModule.java#L54
-    public void handle(GeyserDefineCustomBlocksEvent event, Path packRoot) {
+    @Override
+    public void register(EventBus<EventRegistrar> eventBus, Path packRoot) {
+        eventBus.subscribe(this, GeyserDefineCustomBlocksEvent.class, event -> handle(event, packRoot));
+    }
+
+    private void handle(GeyserDefineCustomBlocksEvent event, Path packRoot) {
         Path textureDir = createDirectoryOrThrow(packRoot.resolve("textures"));
         createDirectoryOrThrow(textureDir.resolve("blocks"));
 
@@ -227,15 +236,14 @@ public class BlockTranslator extends Translator {
         JsonObject soundsJson = new JsonObject();
         JsonObject blockSoundsObject = new JsonObject();
         JsonObject interactiveSoundsObject = new JsonObject();
-
         JsonObject interactiveSoundsWrapper = new JsonObject();
         JsonObject textureDataObject = new JsonObject();
 
+        // Only non-blacklisted blocks are processed
         forEachBlock((identifier, block) -> {
             Block realBlock = Registries.BLOCK.get(identifier);
-            // Block names
-            addTranslationKey("block." + identifier.getNamespace() + "." + identifier.getPath(), realBlock.getTranslationKey());
-
+            addTranslationKey("block." + identifier.getNamespace() + "." + identifier.getPath(),
+                    realBlock.getTranslationKey());
             NonVanillaCustomBlockData.Builder builder = NonVanillaCustomBlockData.builder()
                     .name(identifier.getPath())
                     .namespace(identifier.getNamespace())
@@ -259,7 +267,8 @@ public class BlockTranslator extends Translator {
                 TranslationManager.INCLUDE_OPTIONAL_TEXTURES_HACK = true;
                 BlockState polymerBlockState = block.getPolymerBlockState(state, PacketContext.get());
                 BlockResourceCreator creator = PolymerBlockResourceUtilsAccessor.getCREATOR();
-                Either<PolymerBlockModel[], MultiPolymerBlockModel> polymerBlockModels = ((BlockResourceCreatorAccessor) (Object) creator).getModels().get(polymerBlockState);
+                Either<PolymerBlockModel[], MultiPolymerBlockModel> polymerBlockModels =
+                        ((BlockResourceCreatorAccessor) (Object) creator).getModels().get(polymerBlockState);
                 TranslationManager.INCLUDE_OPTIONAL_TEXTURES_HACK = false;
                 if (polymerBlockModels == null) {
                     LOGGER.warn("Models are null for blockstate {}", state);
@@ -280,11 +289,13 @@ public class BlockTranslator extends Translator {
                 PolymerBlockModel modelEntry = listModels[0]; // TODO: java selects one by weight, does bedrock support this?
 
                 // Rotation
-                TransformationComponent rotationComponent = new TransformationComponent((360 - modelEntry.x()) % 360, (360 - modelEntry.y()) % 360, 0);
+                TransformationComponent rotationComponent =
+                        new TransformationComponent((360 - modelEntry.x()) % 360,
+                                (360 - modelEntry.y()) % 360, 0);
                 stateComponentBuilder.transformation(rotationComponent);
 
                 // Geometry
-                String renderMethod = state.isOpaque() ? "opaque" : "blend"; // TODO: Hydraulic also faces this problem; Figure out when to use alpha_test
+                String renderMethod = state.isOpaque() ? "opaque" : "blend";
                 Identifier blockModelId = modelEntry.model();
                 Model blockModel = resolveModel(blockModelId);
                 if (blockModel == null) {
@@ -298,10 +309,11 @@ public class BlockTranslator extends Translator {
                 if (modelParentKey != null && parentFaceMap.containsKey(modelParentKey.value())) {
                     // Vanilla parent
                     boolean cross = modelParentKey.toString().equals("minecraft:block/cross");
-                    String geometryIdentifier = cross ?  "minecraft:geometry.cross" : "minecraft:geometry.full_block";
+                    String geometryIdentifier = cross ? "minecraft:geometry.cross" : "minecraft:geometry.full_block";
                     if (cross) renderMethod = "alpha_test_single_sided";
 
-                    GeometryComponent geometryComponent = GeometryComponent.builder().identifier(geometryIdentifier).build();
+                    GeometryComponent geometryComponent =
+                            GeometryComponent.builder().identifier(geometryIdentifier).build();
                     stateComponentBuilder.geometry(geometryComponent);
 
                     ModelTextures textures = blockModel.textures();
@@ -317,7 +329,7 @@ public class BlockTranslator extends Translator {
                 } else {
                     // Custom model
                     ModelStitcher.Provider provider = key -> resolveModel(Identifier.of(key.asString()));
-                    blockModel = new ModelStitcher(provider, blockModel).stitch(); // This resolves parent models (?)
+                    blockModel = new ModelStitcher(provider, blockModel).stitch();
 
                     Pair<String, ModelEntity> nameAndModel = JavaGeometryConverter.convert(blockModel);
                     if (nameAndModel == null) {
@@ -325,7 +337,8 @@ public class BlockTranslator extends Translator {
                         continue;
                     }
                     String geometryId = nameAndModel.getLeft();
-                    writeJsonToFile(nameAndModel.getRight(), blockModelsDir.resolve(geometryId + ".geo.json").toFile());
+                    writeJsonToFile(nameAndModel.getRight(),
+                            blockModelsDir.resolve(geometryId + ".geo.json").toFile());
 
                     for (Map.Entry<String, ModelTexture> entry : blockModel.textures().variables().entrySet()) {
                         String key = entry.getKey();
@@ -333,7 +346,8 @@ public class BlockTranslator extends Translator {
                         materials.put(key, texture);
                     }
 
-                    GeometryComponent geometryComponent = GeometryComponent.builder().identifier(geometryId).build();
+                    GeometryComponent geometryComponent =
+                            GeometryComponent.builder().identifier(geometryId).build();
                     stateComponentBuilder.geometry(geometryComponent);
                 }
 
@@ -341,11 +355,12 @@ public class BlockTranslator extends Translator {
                     LOGGER.error("Couldn't generate materials for blockstate {}", state);
                     continue;
                 }
-
                 // Particles
                 ModelTextures textures = blockModel.textures();
                 if (!materials.containsKey("*")) {
-                    ModelTexture texture = textures.particle() == null ? materials.values().iterator().next() : textures.particle();
+                    ModelTexture texture = textures.particle() == null
+                            ? materials.values().iterator().next()
+                            : textures.particle();
                     materials.put("*", texture);
                 }
 
@@ -357,7 +372,6 @@ public class BlockTranslator extends Translator {
                         if (reference == null || !materials.containsKey(reference)) {
                             break;
                         }
-
                         texture = materials.get(reference);
                     }
 
@@ -377,7 +391,9 @@ public class BlockTranslator extends Translator {
                         thisTexture.addProperty("textures", bedrockPath);
                         textureDataObject.add(textureName, thisTexture);
 
-                        ResourceHelper.copyResource(textureIdentifier.getNamespace(), texturePath + ".png", packRoot.resolve(bedrockPath + ".png"));
+                        ResourceHelper.copyResource(textureIdentifier.getNamespace(),
+                                texturePath + ".png",
+                                packRoot.resolve(bedrockPath + ".png"));
                     }
 
                     stateComponentBuilder.materialInstance(entry.getKey(), MaterialInstance.builder()
@@ -404,14 +420,12 @@ public class BlockTranslator extends Translator {
                 }
 
                 // Conditions
-                // Essentially telling Bedrock what components to activate when
                 List<String> conditions = new ArrayList<>();
                 for (Property<?> property : state.getProperties()) {
                     String propertyValue = state.get(property).toString();
                     if (property instanceof EnumProperty<?>) {
                         propertyValue = "'" + propertyValue.toLowerCase() + "'";
                     }
-
                     conditions.add("q.block_property('%name%') == %value%"
                             .replace("%name%", property.getName())
                             .replace("%value%", propertyValue));
@@ -423,44 +437,46 @@ public class BlockTranslator extends Translator {
             builder.permutations(permutations);
 
             // Sounds
-            // blocks.json
             String blockAsString = identifier.toString();
             JsonObject thisBlockObject = new JsonObject();
             thisBlockObject.addProperty("sound", blockAsString);
             blocksJson.add(blockAsString, thisBlockObject);
 
-            // sounds.json
             BlockSoundGroup soundGroup = realBlock.getDefaultState().getSoundGroup();
-            // base sounds (break, hit, place)
             JsonObject baseSoundObject = new JsonObject();
             baseSoundObject.addProperty("pitch", soundGroup.getPitch());
             baseSoundObject.addProperty("volume", soundGroup.getVolume());
 
             JsonObject soundEventsObject = new JsonObject();
-            soundEventsObject.addProperty("break", SoundUtils.translatePlaySound(soundGroup.getBreakSound().id().toString()));
-            soundEventsObject.addProperty("hit", SoundUtils.translatePlaySound(soundGroup.getHitSound().id().toString()));
-            soundEventsObject.addProperty("place", SoundUtils.translatePlaySound(soundGroup.getPlaceSound().id().toString()));
+            soundEventsObject.addProperty("break",
+                    SoundUtils.translatePlaySound(soundGroup.getBreakSound().id().toString()));
+            soundEventsObject.addProperty("hit",
+                    SoundUtils.translatePlaySound(soundGroup.getHitSound().id().toString()));
+            soundEventsObject.addProperty("place",
+                    SoundUtils.translatePlaySound(soundGroup.getPlaceSound().id().toString()));
             baseSoundObject.add("events", soundEventsObject);
 
             blockSoundsObject.add(blockAsString, baseSoundObject);
-            // interactive sounds
+
             JsonObject interactiveSoundObject = new JsonObject();
             interactiveSoundObject.addProperty("pitch", soundGroup.getPitch());
-            interactiveSoundObject.addProperty("volume", soundGroup.getVolume() * .4); // The multiplier is arbitrary, its just too loud by default :(
+            interactiveSoundObject.addProperty("volume", soundGroup.getVolume() * .4);
 
             JsonObject interactiveEventsObject = new JsonObject();
-            interactiveEventsObject.addProperty("fall", SoundUtils.translatePlaySound(soundGroup.getFallSound().id().toString()));
-            interactiveEventsObject.addProperty("jump", SoundUtils.translatePlaySound(soundGroup.getStepSound().id().toString()));
-            interactiveEventsObject.addProperty("step", SoundUtils.translatePlaySound(soundGroup.getStepSound().id().toString()));
-            interactiveEventsObject.addProperty("land", SoundUtils.translatePlaySound(soundGroup.getFallSound().id().toString()));
+            interactiveEventsObject.addProperty("fall",
+                    SoundUtils.translatePlaySound(soundGroup.getFallSound().id().toString()));
+            interactiveEventsObject.addProperty("jump",
+                    SoundUtils.translatePlaySound(soundGroup.getStepSound().id().toString()));
+            interactiveEventsObject.addProperty("step",
+                    SoundUtils.translatePlaySound(soundGroup.getStepSound().id().toString()));
+            interactiveEventsObject.addProperty("land",
+                    SoundUtils.translatePlaySound(soundGroup.getFallSound().id().toString()));
             interactiveSoundObject.add("events", interactiveEventsObject);
             interactiveSoundsObject.add(blockAsString, interactiveSoundObject);
 
-            // Registration
             NonVanillaCustomBlockData data = builder.build();
             event.register(data);
             registeredBlocks.add(block);
-
             // Registering the block states
             for (BlockState state : realBlock.getStateManager().getStates()) {
                 CustomBlockState.Builder stateBuilder = data.blockStateBuilder();
@@ -472,9 +488,11 @@ public class BlockTranslator extends Translator {
                         case BooleanProperty booleanProperty ->
                                 stateBuilder.booleanProperty(property.getName(), state.get(booleanProperty));
                         case EnumProperty<?> enumProperty ->
-                                stateBuilder.stringProperty(enumProperty.getName(), state.get(enumProperty).toString().toLowerCase());
+                                stateBuilder.stringProperty(enumProperty.getName(),
+                                        state.get(enumProperty).toString().toLowerCase());
                         default ->
-                                throw new IllegalArgumentException("Unknown property type: " + property.getClass().getName());
+                                throw new IllegalArgumentException("Unknown property type: "
+                                        + property.getClass().getName());
                     }
                 }
 
@@ -488,18 +506,23 @@ public class BlockTranslator extends Translator {
                 } else {
                     Box box = shape.getBoundingBox();
                     javaBlockState.collision(new JavaBoundingBox[]{
-                        new JavaBoundingBox(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ)
+                            new JavaBoundingBox(box.minX, box.minY, box.minZ,
+                                    box.maxX, box.maxY, box.maxZ)
                     });
                 }
 
                 javaBlockState.javaId(Block.getRawIdFromState(state));
                 javaBlockState.identifier(BlockArgumentParser.stringifyBlockState(state));
                 javaBlockState.waterlogged(state.get(Properties.WATERLOGGED, false));
-                if (realBlock.asItem() != null) javaBlockState.pickItem(Registries.ITEM.getId(realBlock.asItem()).toString());
+                if (realBlock.asItem() != null) {
+                    javaBlockState.pickItem(Registries.ITEM.getId(realBlock.asItem()).toString());
+                }
                 javaBlockState.canBreakWithHand(state.isToolRequired());
 
                 PistonBehavior pistonBehavior = state.getPistonBehavior();
-                javaBlockState.pistonBehavior(pistonBehavior == PistonBehavior.IGNORE ? "NORMAL" : pistonBehavior.name());
+                javaBlockState.pistonBehavior(
+                        pistonBehavior == PistonBehavior.IGNORE ? "NORMAL" : pistonBehavior.name()
+                );
 
                 event.registerOverride(javaBlockState.build(), customBlockState);
             }
@@ -509,14 +532,11 @@ public class BlockTranslator extends Translator {
         soundsJson.add("block_sounds", blockSoundsObject);
         interactiveSoundsWrapper.add("block_sounds", interactiveSoundsObject);
         soundsJson.add("interactive_sounds", interactiveSoundsWrapper);
+
         writeJsonToFile(terrainTextureObject, textureDir.resolve("terrain_texture.json").toFile());
         writeJsonToFile(blocksJson, packRoot.resolve("blocks.json").toFile());
         writeJsonToFile(soundsJson, packRoot.resolve("sounds.json").toFile());
-        markResourcesProvided();
-    }
 
-    @Override
-    public void register(EventBus<EventRegistrar> eventBus, Path packRoot) {
-        eventBus.subscribe(this, GeyserDefineCustomBlocksEvent.class, event -> handle(event, packRoot));
+        markResourcesProvided();
     }
 }
