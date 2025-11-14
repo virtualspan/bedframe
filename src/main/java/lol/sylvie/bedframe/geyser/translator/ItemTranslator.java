@@ -1,6 +1,7 @@
 package lol.sylvie.bedframe.geyser.translator;
 
 import lol.sylvie.bedframe.geyser.Translator;
+import net.minecraft.item.Item;
 import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
 
@@ -19,5 +20,13 @@ public class ItemTranslator extends Translator {
     @Override
     public void register(EventBus<EventRegistrar> eventBus, Path packRoot) {
         // No-op: do not subscribe to item events
+    }
+
+    /**
+     * Stub method so mixins compile, but items are never marked textured.
+     * Always returns false.
+     */
+    public static boolean isTexturedItem(Item item) {
+        return false;
     }
 }
