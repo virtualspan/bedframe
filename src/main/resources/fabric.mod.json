@@ -29,8 +29,12 @@
 		"java": ">=21",
 		"fabric-api": "*",
 		"geyser-fabric": "*",
-		"polymer-core": "*",
-		"polymer-blocks": "*",
-		"polymer-resource-pack": "*"
-	}
+        "hydraulic": "*"
+    },
+    "suggests": {
+        "polymer-core": "*",
+        "polymer-blocks": "*",
+        "polymer-resource-pack": "*",
+        "polymc": "*"
+  }
 }

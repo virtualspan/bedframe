@@ -22,6 +22,9 @@ repositories {
 		url 'https://maven.nucleoid.xyz'
 	}
 
+    // PolyMc
+    maven { url "https://maven.theepicblock.nl"; content { includeGroup("nl.theepicblock") } }
+
 	maven {
 		url = uri("https://repo.opencollab.dev/main/")
 	}
@@ -72,19 +75,25 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
 	// Polymer
-	modImplementation "eu.pb4:polymer-core:${project.polymer_version}"
-	modImplementation "eu.pb4:polymer-blocks:${project.polymer_version}"
-	modImplementation "eu.pb4:polymer-resource-pack:${project.polymer_version}"
+	modCompileOnly "eu.pb4:polymer-core:${project.polymer_version}"
+	modCompileOnly "eu.pb4:polymer-blocks:${project.polymer_version}"
+	modCompileOnly "eu.pb4:polymer-resource-pack:${project.polymer_version}"
+
+    // PolyMc fork https://github.com/Patbox/PolyMc/tree/dev/1.21.6
+    modCompileOnly ('com.github.Patbox:PolyMc:dev~1.21.6-SNAPSHOT') {
+        exclude(group: "org.quiltmc", module: "quilt-loader")
+        exclude(group: "net.fabricmc.fabric-api")
+    }
 
 	// Server-Translations
 	modImplementation "xyz.nucleoid:server-translations-api:${project.server_translations_version}"
 
-	// Geyser
-	compileOnly("org.geysermc.geyser:api:${project.geyser_version}")
-	compileOnly("org.geysermc.geyser:core:${project.geyser_version}")
+    // Geyser
+    compileOnly("org.geysermc.geyser:api:${project.geyser_version}")
+    compileOnly("org.geysermc.geyser:core:${project.geyser_version}")
 
-	include api("org.geysermc.pack:converter:${project.pack_converter_version}")
-	include api("org.geysermc.pack:pack-schema-api:${project.pack_converter_version}")
+    include api("org.geysermc.pack:converter:${project.pack_converter_version}")
+    include api("org.geysermc.pack:pack-schema-api:${project.pack_converter_version}")
 
     include api("com.github.GeyserMC.unnamed-creative:creative-api:817fa982c4")
     include api("com.github.GeyserMC.unnamed-creative:creative-serializer-minecraft:817fa982c4")
