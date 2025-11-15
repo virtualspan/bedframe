@@ -26,12 +26,12 @@ public class BedframeBlacklist {
      */
     public static Set<String> getFullBlacklist(Path configDir) {
         Set<String> full = new HashSet<>(HARDCODED_BLACKLIST);
-        Path configPath = configDir.resolve("bedframe_blacklist.json");
+        Path configPath = configDir.resolve("bedframe").resolve("bedframe-blacklist.json");
 
         if (Files.exists(configPath)) {
             try (Reader reader = Files.newBufferedReader(configPath)) {
                 JsonObject obj = JsonParser.parseReader(reader).getAsJsonObject();
-                JsonArray array = obj.getAsJsonArray("blacklisted_mods");
+                JsonArray array = obj.getAsJsonArray("blacklist");
                 if (array != null) {
                     for (var el : array) {
                         full.add(el.getAsString());
@@ -45,16 +45,19 @@ public class BedframeBlacklist {
         } else {
             // Auto-generate a starter config if missing
             try {
+                Files.createDirectories(configPath.getParent());
+
                 JsonObject obj = new JsonObject();
                 JsonArray array = new JsonArray();
-                // Example entry players can edit/remove
-                array.add("examplemod");
-                obj.add("blacklisted_mods", array);
+                // Example entries players can edit/remove
+                array.add("examplemodid");
+                array.add("examplemodid2");
+                obj.add("blacklist", array);
 
                 try (Writer writer = Files.newBufferedWriter(configPath)) {
                     GSON.toJson(obj, writer);
                 }
-                LOGGER.info("Created default bedframe_blacklist.json at {}", configPath);
+                LOGGER.info("Created default bedframe-blacklist.json at {}", configPath);
             } catch (IOException e) {
                 LOGGER.warn("Couldn't create default blacklist config", e);
             }
