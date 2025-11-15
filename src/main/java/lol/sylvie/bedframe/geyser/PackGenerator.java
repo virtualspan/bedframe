@@ -3,16 +3,10 @@ package lol.sylvie.bedframe.geyser;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import lol.sylvie.bedframe.geyser.item.ItemTextureConverter;
 import lol.sylvie.bedframe.util.*;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.Version;
-import net.minecraft.text.Text;
-import net.minecraft.util.Pair;
-import org.geysermc.pack.converter.util.NioDirectoryFileTreeReader;
-import team.unnamed.creative.ResourcePack;
-import team.unnamed.creative.serialize.minecraft.MinecraftResourcePackReader;
-import xyz.nucleoid.server.translations.api.language.TranslationAccess;
-import xyz.nucleoid.server.translations.impl.ServerTranslations;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -20,27 +14,20 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Function;
 
 import static lol.sylvie.bedframe.util.BedframeConstants.GSON;
 import static lol.sylvie.bedframe.util.BedframeConstants.METADATA;
 
-/**
- * Compiles the output of the {@link Translator} classes into a Bedrock resource pack
- */
 public class PackGenerator {
-    private static final HashMap<String, ResourcePack> RESOURCE_PACK_MAP = new HashMap<>();
-    public static boolean TRANSLATE_OPTIONAL_ITEMS_HACK = false;
 
     private static JsonArray getVersionArray() {
         // TODO: A regex would be more inclusive
-        Version version = BedframeConstants.METADATA.getVersion();
-        List<Integer> friendly = Arrays.stream(version.getFriendlyString()
-                        .split("\\."))
+        Version version = METADATA.getVersion();
+        List<Integer> friendly = Arrays.stream(version.getFriendlyString().split("\\."))
                 .map(x -> x.replaceAll("[^0-9]", ""))
+                .filter(s -> !s.isEmpty())
                 .map(Integer::valueOf)
                 .toList();
-
         JsonArray array = new JsonArray(friendly.size());
         friendly.forEach(array::add);
         return array;
@@ -74,28 +61,55 @@ public class PackGenerator {
         header.addProperty("uuid", shouldRandomize ? UUID.randomUUID().toString() : getUuidString(versionIdentifier));
         header.add("version", version);
 
+        // Modules
         JsonArray engineVersion = new JsonArray();
         engineVersion.add(1); engineVersion.add(21); engineVersion.add(70);
         header.add("min_engine_version", engineVersion);
 
         manifestObject.add("header", header);
 
-        // Modules
         JsonArray modules = new JsonArray();
         JsonObject module = new JsonObject();
         module.addProperty("description", METADATA.getName() + " Resources");
         module.addProperty("type", "resources");
         module.addProperty("uuid", shouldRandomize ? UUID.randomUUID().toString() : getUuidString(versionIdentifier + "-resources"));
         module.add("version", version);
-
         modules.add(module);
-        manifestObject.add("modules", modules);
 
+        manifestObject.add("modules", modules);
         writeJsonToFile(manifestObject, manifestFile);
+    }
+
+    private static void writeItemAtlas(Path packRoot, Set<String> iconKeys) throws IOException {
+        Path texturesDir = packRoot.resolve("textures");
+        PathHelper.createDirectoryOrThrow(texturesDir);
+
+        if (iconKeys.isEmpty()) {
+            BedframeConstants.LOGGER.error("No item icons exported; item_texture.json would be empty. Aborting atlas write.");
+            // Still write an empty atlas to avoid file-missing issues, but log loudly
+        }
+
+        JsonObject atlas = new JsonObject();
+        atlas.addProperty("resource_pack_name", METADATA.getId());
+        atlas.addProperty("texture_name", "atlas.items");
+
+        JsonObject textureData = new JsonObject();
+        for (String key : iconKeys) {
+            JsonObject entry = new JsonObject();
+            entry.addProperty("textures", "textures/items/" + key);
+            textureData.add(key, entry);
+        }
+        atlas.add("texture_data", textureData);
+
+        writeJsonToFile(atlas, texturesDir.resolve("item_texture.json").toFile());
+        BedframeConstants.LOGGER.info("Wrote item atlas with {} entries", iconKeys.size());
     }
 
     public void generatePack(Path packPath, File outputFile, List<Translator> translators) throws IOException {
         writeManifestFile(packPath);
+
+        // Ensure converter directories exist (idempotent)
+        ItemTextureConverter.init(packPath);
 
         Path textsDir = packPath.resolve("texts");
         PathHelper.createDirectoryOrThrow(textsDir);
@@ -103,25 +117,30 @@ public class PackGenerator {
         // TODO: I'm not sure if translations are even necessary
         JsonArray languages = new JsonArray();
 
-        ArrayList<Pair<String, String>> allKeys = new ArrayList<>();
+        ArrayList<net.minecraft.util.Pair<String, String>> allKeys = new ArrayList<>();
         translators.forEach(t -> allKeys.addAll(t.getTranslations()));
 
         TranslationHelper.LANGUAGES.forEach((code) -> {
             try (FileWriter writer = new FileWriter(textsDir.resolve(code + ".lang").toFile())) {
-                for (Pair<String, String> keyPair : allKeys) {
-                    writer.write(keyPair.getLeft() + "=" + Text.translatable(keyPair.getRight()).getString() + "\n");
+                for (net.minecraft.util.Pair<String, String> keyPair : allKeys) {
+                    writer.write(keyPair.getLeft() + "=" +
+                            net.minecraft.text.Text.translatable(keyPair.getRight()).getString() + "\n");
                 }
             } catch (IOException e) {
-                BedframeConstants.LOGGER.error("Couldn't write language file");
+                BedframeConstants.LOGGER.error("Couldn't write language file", e);
             }
-
             languages.add(code);
         });
         writeJsonToFile(languages, textsDir.resolve("languages.json").toFile());
 
+        writeItemAtlas(packPath, ItemTextureConverter.getExportedIconKeys());
+
         Optional<String> icon = METADATA.getIconPath(512);
-        Files.copy(ResourceHelper.getResource(icon.orElseThrow()), packPath.resolve("pack_icon.png"));
+        if (icon.isPresent()) {
+            Files.copy(ResourceHelper.getResource(icon.get()), packPath.resolve("pack_icon.png"));
+        }
 
         ZipHelper.zipFolder(packPath, outputFile);
+        BedframeConstants.LOGGER.info("Zipped resource pack to {}", outputFile.getAbsolutePath());
     }
 }

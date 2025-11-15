@@ -1,11 +1,14 @@
 package lol.sylvie.bedframe.geyser;
 
+import lol.sylvie.bedframe.geyser.item.ItemPackModule;
 import lol.sylvie.bedframe.geyser.translator.BlockTranslator;
 import lol.sylvie.bedframe.util.BedframeConstants;
+import lol.sylvie.bedframe.util.PathHelper;
 import lol.sylvie.bedframe.util.ResourceHelper;
 import org.geysermc.geyser.api.GeyserApi;
 import org.geysermc.geyser.api.event.EventBus;
 import org.geysermc.geyser.api.event.EventRegistrar;
+import org.geysermc.geyser.api.event.lifecycle.GeyserDefineCustomItemsEvent;
 import org.geysermc.geyser.api.event.lifecycle.GeyserDefineResourcePacksEvent;
 import org.geysermc.geyser.api.pack.PackCodec;
 import org.geysermc.geyser.api.pack.ResourcePack;
@@ -22,15 +25,12 @@ public class TranslationManager implements EventRegistrar {
     private static final PackGenerator packGenerator = new PackGenerator();
     private boolean generatedResources = false;
 
+    // Hack flags restored for compatibility
     public static boolean INCLUDE_OPTIONAL_TEXTURES_HACK = false;
     public static boolean INCLUDE_TEXTURE_HACK = false;
 
-    public TranslationManager() {}
-
     public void registerHooks() {
-        List<Translator> translators = List.of(
-                new BlockTranslator()
-        );
+        List<Translator> translators = List.of(new BlockTranslator());
 
         // Generate the fold
         Path packSourceDir;
@@ -39,6 +39,14 @@ public class TranslationManager implements EventRegistrar {
         } catch (IOException e) {
             BedframeConstants.LOGGER.error("Couldn't create resource pack temporary directory", e);
             return;
+        }
+
+        // Ensure textures parent exists, then init converter
+        try {
+            PathHelper.createDirectoryOrThrow(packSourceDir.resolve("textures"));
+            lol.sylvie.bedframe.geyser.item.ItemTextureConverter.init(packSourceDir);
+        } catch (IOException e) {
+            BedframeConstants.LOGGER.error("Couldn't init item texture converter", e);
         }
 
         Path resourcePack = BedframeConstants.CONFIG_DIR.resolve("bedframe.zip");
@@ -53,14 +61,24 @@ public class TranslationManager implements EventRegistrar {
         try {
             ResourceHelper.VANILLA_PACK = new ZipFile(vanillaPath.toFile());
         } catch (IOException e) {
-			BedframeConstants.LOGGER.error("Couldn't read vanilla resources", e);
-		}
+            BedframeConstants.LOGGER.error("Couldn't read vanilla resources", e);
+        }
 
-		EventBus<EventRegistrar> eventBus = GeyserApi.api().eventBus();
+        EventBus<EventRegistrar> eventBus = GeyserApi.api().eventBus();
+
+        // Register block translators
         for (Translator translator : translators) {
             translator.register(eventBus, packSourceDir);
         }
 
+        // Register items first
+        eventBus.subscribe(this, GeyserDefineCustomItemsEvent.class, event -> {
+            new ItemPackModule().onDefineCustomItems(event);
+            BedframeConstants.LOGGER.info("Custom items defined; exported {} icons",
+                    lol.sylvie.bedframe.geyser.item.ItemTextureConverter.getExportedIconKeys().size());
+        });
+
+        // Then generate and register the resource pack
         eventBus.subscribe(this, GeyserDefineResourcePacksEvent.class, event -> {
             try {
                 // For some reason, GeyserDefineResourcePacksEvent is called once *before* blocks
@@ -73,9 +91,9 @@ public class TranslationManager implements EventRegistrar {
                     packGenerator.generatePack(packSourceDir, resourcePack.toFile(), translators);
                     generatedResources = true;
                 }
-
                 event.register(ResourcePack.create(PackCodec.path(resourcePack)));
-                BedframeConstants.LOGGER.info("Registered resource pack");
+                BedframeConstants.LOGGER.info("Registered resource pack with {} item icons",
+                        lol.sylvie.bedframe.geyser.item.ItemTextureConverter.getExportedIconKeys().size());
             } catch (IOException e) {
                 BedframeConstants.LOGGER.error("Couldn't generate resource pack", e);
             }

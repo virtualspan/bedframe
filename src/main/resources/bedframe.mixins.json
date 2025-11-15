@@ -12,6 +12,8 @@
     "GlobalItemUtilsBypassMixin",
     "PolymerBlockResourceUtilsAccessor",
     "PolymerBlockUtilsMixin",
+    "PolymerItemMixin",
+    "PolymerItemUtilsMixin",
     "PolymerResourcePackUtilsMixin",
     "ServerCommonNetworkHandlerAccessor",
     "VanillaPackProviderMixin"

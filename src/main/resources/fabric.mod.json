@@ -28,13 +28,13 @@
 		"minecraft": ["1.21.9", "1.21.10"],
 		"java": ">=21",
 		"fabric-api": "*",
-		"geyser-fabric": "*",
-        "hydraulic": "*"
+		"geyser-fabric": "*"
     },
     "suggests": {
         "polymer-core": "*",
         "polymer-blocks": "*",
         "polymer-resource-pack": "*",
-        "polymc": "*"
-  }
+        "polymc": "*",
+        "hydraulic": "*"
+    }
 }
