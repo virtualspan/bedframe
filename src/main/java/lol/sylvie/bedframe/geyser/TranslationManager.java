@@ -1,7 +1,6 @@
 package lol.sylvie.bedframe.geyser;
 
 import lol.sylvie.bedframe.geyser.translator.BlockTranslator;
-import lol.sylvie.bedframe.geyser.translator.ItemTranslator;
 import lol.sylvie.bedframe.util.BedframeConstants;
 import lol.sylvie.bedframe.util.ResourceHelper;
 import org.geysermc.geyser.api.GeyserApi;
@@ -30,8 +29,7 @@ public class TranslationManager implements EventRegistrar {
 
     public void registerHooks() {
         List<Translator> translators = List.of(
-                new BlockTranslator(),
-                new ItemTranslator()
+                new BlockTranslator()
         );
 
         // Generate the fold

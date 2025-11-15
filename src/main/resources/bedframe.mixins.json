@@ -8,8 +8,6 @@
     "ElementRotationMixin",
     "PolymerBlockResourceUtilsAccessor",
     "PolymerBlockUtilsMixin",
-    "PolymerItemMixin",
-    "PolymerItemUtilsMixin",
     "PolymerResourcePackUtilsMixin",
     "VanillaPackProviderMixin"
   ],
