@@ -11,6 +11,7 @@ import lol.sylvie.bedframe.geyser.TranslationManager;
 import lol.sylvie.bedframe.geyser.Translator;
 import lol.sylvie.bedframe.geyser.model.JavaGeometryConverter;
 import lol.sylvie.bedframe.mixin.BlockResourceCreatorAccessor;
+import lol.sylvie.bedframe.util.BedframeBlacklist;
 import lol.sylvie.bedframe.mixin.PolymerBlockResourceUtilsAccessor;
 import lol.sylvie.bedframe.util.ResourceHelper;
 import net.kyori.adventure.key.Key;
@@ -110,7 +111,14 @@ public class BlockTranslator extends Translator {
     private final HashMap<Identifier, PolymerTexturedBlock> blocks = new HashMap<>();
 
     public BlockTranslator() {
-        Stream<Identifier> blockIds = Registries.BLOCK.getIds().stream();
+        // Load blacklist (hardcoded + config)
+        Set<String> blacklist = BedframeBlacklist.getFullBlacklist(
+                net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir()
+        );
+
+        // Filter blocks by namespace
+        Stream<Identifier> blockIds = Registries.BLOCK.getIds().stream()
+                .filter(id -> !blacklist.contains(id.getNamespace()));
 
         blockIds.forEach(identifier -> {
             Block block = Registries.BLOCK.get(identifier);
