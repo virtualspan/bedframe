@@ -22,6 +22,14 @@ repositories {
 		url 'https://maven.nucleoid.xyz'
 	}
 
+	// PolyMc
+	maven {
+		url "https://maven.theepicblock.nl";
+		content {
+			includeGroup("nl.theepicblock")
+		}
+	}
+
 	maven {
 		url = uri("https://repo.opencollab.dev/main/")
 	}
@@ -75,6 +83,12 @@ dependencies {
 	modImplementation "eu.pb4:polymer-core:${project.polymer_version}"
 	modImplementation "eu.pb4:polymer-blocks:${project.polymer_version}"
 	modImplementation "eu.pb4:polymer-resource-pack:${project.polymer_version}"
+
+	// PolyMc fork https://github.com/Patbox/PolyMc/tree/dev/1.21.6
+	modCompileOnly ('com.github.Patbox:PolyMc:dev~1.21.6-SNAPSHOT') {
+		exclude(group: "org.quiltmc", module: "quilt-loader")
+		exclude(group: "net.fabricmc.fabric-api")
+	}
 
 	// Server-Translations
 	modImplementation "xyz.nucleoid:server-translations-api:${project.server_translations_version}"

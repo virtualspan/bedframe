@@ -7,11 +7,16 @@
     "CustomBlockRegistryPopulatorMixin",
     "CustomItemRegistryPopulatorMixin",
     "ElementRotationMixin",
+    "GlobalBlockResourceUtilsAccessor",
+    "GlobalBlockUtilsBypassMixin",
+    "GlobalItemReplacementBypassMixin",
+    "GlobalItemUtilsBypassMixin",
     "PolymerBlockResourceUtilsAccessor",
     "PolymerBlockUtilsMixin",
     "PolymerItemMixin",
     "PolymerItemUtilsMixin",
     "PolymerResourcePackUtilsMixin",
+    "ServerCommonNetworkHandlerAccessor",
     "VanillaPackProviderMixin"
   ],
   "injectors": {

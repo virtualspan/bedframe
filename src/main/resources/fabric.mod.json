@@ -32,6 +32,7 @@
 		"geyser-fabric": "*",
 		"polymer-core": "*",
 		"polymer-blocks": "*",
-		"polymer-resource-pack": "*"
+		"polymer-resource-pack": "*",
+		"hydraulic": "*"
 	}
 }
